@@ -12,10 +12,20 @@ fetch(path, {
     .then(response => response.json())
     .then(data => {
         if (data.error !== undefined) {
-            // Error
             containerImageDefault.innerHTML = data.error;
+        } else if (data.images.length === 0) {
+            // Railway (or no local images): show text input for image name
+            var parent = containerImage.parentNode;
+            var input = document.createElement("input");
+            input.type = "text";
+            input.className = "form-control";
+            input.name = "image";
+            input.id = "container-image";
+            input.placeholder = "e.g. username/kiddie-pwn:latest";
+            input.value = container_image_selected || "";
+            input.required = true;
+            parent.replaceChild(input, containerImage);
         } else {
-            // Success
             for (var i = 0; i < data.images.length; i++) {
                 var opt = document.createElement("option");
                 opt.value = data.images[i];

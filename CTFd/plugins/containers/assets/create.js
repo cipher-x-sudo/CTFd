@@ -23,10 +23,20 @@ fetch(path, {
 })
 .then(data => {
     if (data.error != undefined) {
-        // Error
         containerImageDefault.innerHTML = data.error;
+    } else if (data.images.length === 0) {
+        // Railway (or no local images): allow typing image name e.g. username/repo:tag
+        var parent = containerImage.parentNode;
+        var input = document.createElement("input");
+        input.type = "text";
+        input.className = "form-control";
+        input.name = "image";
+        input.id = "container-image";
+        input.placeholder = "e.g. username/kiddie-pwn:latest";
+        input.title = "Docker image to pull (e.g. from Docker Hub)";
+        input.required = true;
+        parent.replaceChild(input, containerImage);
     } else {
-        // Success
         for (var i = 0; i < data.images.length; i++) {
             var opt = document.createElement("option");
             opt.value = data.images[i];
