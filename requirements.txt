@@ -129,6 +129,8 @@ pillow==11.3.0
     # via -r requirements.in
 pycparser==2.22
     # via cffi
+psycopg2-binary==2.9.9
+    # via -r requirements.in
 pydantic==1.6.2
     # via -r requirements.in
 pymysql[rsa]==1.1.1
