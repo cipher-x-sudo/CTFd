@@ -53,9 +53,31 @@ function mergeQueryParams(parameters, queryParameters) {
 
 function resetAlert() {
     let alert = document.getElementById("deployment-info");
-    alert.innerHTML = "";
-    alert.classList.remove("alert-danger");
+    if (alert) {
+        alert.innerHTML = "";
+        alert.classList.remove("alert-danger");
+    }
     return alert;
+}
+
+function getCsrfToken() {
+    return (window.init && window.init.csrfNonce) || (typeof init !== "undefined" && init && init.csrfNonce) || "";
+}
+
+function showConfigError(alertEl) {
+    if (alertEl) {
+        alertEl.append("Page configuration error. Refresh and try again.");
+        alertEl.classList.add("alert-danger");
+    }
+}
+
+function showRequestFailed(alertEl, status) {
+    if (alertEl) {
+        alertEl.append(status != null
+            ? "Request failed (" + status + "). Check that the CTF has started and your email is verified."
+            : "Request failed. Try again or check the console.");
+        alertEl.classList.add("alert-danger");
+    }
 }
 
 function toggleChallengeCreate() {
@@ -110,146 +132,192 @@ function createChallengeLinkElement(data, parent) {
 }
 
 function view_container_info(challenge_id) {
-    resetAlert();
+    let alert = resetAlert();
+    var csrfToken = getCsrfToken();
+    if (!csrfToken) {
+        showConfigError(alert);
+        return;
+    }
     var path = "/containers/api/view_info";
-    
-    let alert = document.getElementById("deployment-info");
     fetch(path, {
         method: "POST",
         headers: {
             "Content-Type": "application/json",
             "Accept": "application/json",
-            "CSRF-Token": init.csrfNonce
+            "CSRF-Token": csrfToken
         },
         body: JSON.stringify({ chal_id: challenge_id })
     })
-    .then(response => response.json())
-    .then(data => {
+    .then(response => response.json().catch(function () { return null; }).then(function (data) { return { response: response, data: data }; }))
+    .then(function (_ref) {
+        var response = _ref.response, data = _ref.data;
+        if (!response.ok) {
+            if (alert) {
+                alert.append(data && (data.error || data.message) || ("Request failed (" + response.status + "). Check that the CTF has started and your email is verified."));
+                alert.classList.add("alert-danger");
+            }
+            return;
+        }
         if (data.status == "Suffering hasn't begun") {
             alert.append(data.status);
             toggleChallengeCreate();
         } else if (data.status == "already_running") {
-            // Success
             createChallengeLinkElement(data, alert);
             toggleChallengeUpdate();
         } else {
             resetAlert();
-            alert.append(data.message);
-            alert.classList.toggle('alert-danger');
+            if (alert) {
+                alert.append(data.message || "Unknown error");
+                alert.classList.add("alert-danger");
+            }
             toggleChallengeUpdate();
         }
     })
-    .catch(error => {
+    .catch(function (error) {
         console.error("Fetch error:", error);
+        showRequestFailed(alert, null);
     });
 }
 
 function container_request(challenge_id) {
-    var path = "/containers/api/request";
     let alert = resetAlert();
-
+    var csrfToken = getCsrfToken();
+    if (!csrfToken) {
+        showConfigError(alert);
+        return;
+    }
+    var path = "/containers/api/request";
     fetch(path, {
         method: "POST",
         headers: {
             "Content-Type": "application/json",
             "Accept": "application/json",
-            "CSRF-Token": init.csrfNonce
+            "CSRF-Token": csrfToken
         },
         body: JSON.stringify({ chal_id: challenge_id })
     })
-    .then(response => response.json())
-    .then(data => {
-        if (data.error !== undefined) {
-            // Container error
-            alert.append(data.error);
-            alert.classList.toggle('alert-danger');
+    .then(response => response.json().catch(function () { return null; }).then(function (data) { return { response: response, data: data }; }))
+    .then(function (_ref) {
+        var response = _ref.response, data = _ref.data;
+        if (!response.ok) {
+            if (alert) {
+                alert.append(data && (data.error || data.message) || ("Request failed (" + response.status + "). Check that the CTF has started and your email is verified."));
+                alert.classList.add("alert-danger");
+            }
             toggleChallengeCreate();
-        } else if (data.message !== undefined) {
-            // CTFd error
+            return;
+        }
+        if (data && data.error !== undefined) {
+            alert.append(data.error);
+            alert.classList.add("alert-danger");
+            toggleChallengeCreate();
+        } else if (data && data.message !== undefined) {
             alert.append(data.message);
-            alert.classList.toggle('alert-danger');
+            alert.classList.add("alert-danger");
             toggleChallengeCreate();
         } else {
-            // Success
             createChallengeLinkElement(data, alert);
             toggleChallengeUpdate();
             toggleChallengeCreate();
         }
     })
-    .catch(error => {
+    .catch(function (error) {
         console.error("Fetch error:", error);
+        showRequestFailed(alert, null);
     });
 }
 
 function container_renew(challenge_id) {
-    var path = "/containers/api/renew";
     let alert = resetAlert();
-
+    var csrfToken = getCsrfToken();
+    if (!csrfToken) {
+        showConfigError(alert);
+        return;
+    }
+    var path = "/containers/api/renew";
     fetch(path, {
         method: "POST",
         headers: {
             "Content-Type": "application/json",
             "Accept": "application/json",
-            "CSRF-Token": init.csrfNonce
+            "CSRF-Token": csrfToken
         },
         body: JSON.stringify({ chal_id: challenge_id })
     })
-    .then(response => response.json())
-    .then(data => {
-        if (data.error !== undefined) {
-            // Container error
-            alert.append(data.error);
-            alert.classList.toggle('alert-danger');
+    .then(response => response.json().catch(function () { return null; }).then(function (data) { return { response: response, data: data }; }))
+    .then(function (_ref) {
+        var response = _ref.response, data = _ref.data;
+        if (!response.ok) {
+            if (alert) {
+                alert.append(data && (data.error || data.message) || ("Request failed (" + response.status + "). Check that the CTF has started and your email is verified."));
+                alert.classList.add("alert-danger");
+            }
             toggleChallengeCreate();
-        } else if (data.message !== undefined) {
-            // CTFd error
+            return;
+        }
+        if (data && data.error !== undefined) {
+            alert.append(data.error);
+            alert.classList.add("alert-danger");
+            toggleChallengeCreate();
+        } else if (data && data.message !== undefined) {
             alert.append(data.message);
-            alert.classList.toggle('alert-danger');
+            alert.classList.add("alert-danger");
             toggleChallengeCreate();
         } else {
-            // Success
             createChallengeLinkElement(data, alert);
         }
     })
-    .catch(error => {
+    .catch(function (error) {
         console.error("Fetch error:", error);
+        showRequestFailed(alert, null);
     });
 }
 
 function container_stop(challenge_id) {
-    var path = "/containers/api/stop";
     let alert = resetAlert();
-
+    var csrfToken = getCsrfToken();
+    if (!csrfToken) {
+        showConfigError(alert);
+        return;
+    }
+    var path = "/containers/api/stop";
     fetch(path, {
         method: "POST",
         headers: {
             "Content-Type": "application/json",
             "Accept": "application/json",
-            "CSRF-Token": init.csrfNonce
+            "CSRF-Token": csrfToken
         },
         body: JSON.stringify({ chal_id: challenge_id })
     })
-    .then(response => response.json())
-    .then(data => {
-        if (data.error !== undefined) {
-            // Container error
-            alert.append(data.error);
-            alert.classList.toggle('alert-danger');
+    .then(response => response.json().catch(function () { return null; }).then(function (data) { return { response: response, data: data }; }))
+    .then(function (_ref) {
+        var response = _ref.response, data = _ref.data;
+        if (!response.ok) {
+            if (alert) {
+                alert.append(data && (data.error || data.message) || ("Request failed (" + response.status + "). Check that the CTF has started and your email is verified."));
+                alert.classList.add("alert-danger");
+            }
             toggleChallengeCreate();
-        } else if (data.message !== undefined) {
-            // CTFd error
+            return;
+        }
+        if (data && data.error !== undefined) {
+            alert.append(data.error);
+            alert.classList.add("alert-danger");
+            toggleChallengeCreate();
+        } else if (data && data.message !== undefined) {
             alert.append(data.message);
-            alert.classList.toggle('alert-danger');
+            alert.classList.add("alert-danger");
             toggleChallengeCreate();
         } else {
-            // Success
             alert.append("You have suffered enough.");
             toggleChallengeCreate();
             toggleChallengeUpdate();
         }
     })
-    .catch(error => {
+    .catch(function (error) {
         console.error("Fetch error:", error);
+        showRequestFailed(alert, null);
     });
 }
 
