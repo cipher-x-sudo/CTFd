@@ -1,0 +1,151 @@
+{% extends 'admin/base.html' %}
+{% block content %}
+<div class="jumbotron">
+	<div class="container">
+		<h1>Container Config</h1>
+	</div>
+</div>
+<div class="container">
+	{% with messages = get_flashed_messages() %}
+	{% if messages %}
+	{% for message in messages %}
+	<div class="alert alert-danger" role="alert">
+		{{ message }}
+	</div>
+	{% endfor %}
+	{% endif %}
+	{% endwith %}
+	<div class="row">
+		<div class="col-md-6 offset-md-3">
+			<form method="post" action="/containers/api/settings/update" accept-charset="utf-8" autocomplete="off"
+				role="form" class="form-horizontal" enctype="multipart/form-data">
+				<div class="form-group">
+					<label for="container_backend">
+						Backend
+					</label>
+					<select class="form-control" name="container_backend" id="container_backend">
+						<option value="docker" {% if settings.container_backend|default("docker") == "docker" %}selected{% endif %}>Docker</option>
+						<option value="railway" {% if settings.container_backend == "railway" %}selected{% endif %}>Railway</option>
+					</select>
+				</div>
+
+				<div id="docker-fields" class="backend-fields">
+					<div class="form-group">
+						<label for="docker_base_url">
+							Base URL (see instructions)
+						</label>
+						<input class="form-control" type="text" name="docker_base_url" id="docker_base_url"
+							placeholder="E.g. unix://var/run/docker.sock or ssh://root@example.com"
+							value='{{ settings.docker_base_url|default("") }}' />
+					</div>
+					<div class="form-group">
+						<label for="docker_hostname">
+							Hostname for Docker Host (this is what's displayed to the user in the connection string)
+						</label>
+						<input class="form-control" type="text" name="docker_hostname" id="docker_hostname"
+							placeholder="e.g. example.com or 10.0.1.8" value='{{ settings.docker_hostname|default("") }}' />
+					</div>
+					<div class="form-group">
+						<label for="container_maxmemory">
+							Maximum per-container memory usage (in MB)
+						</label>
+						<input class="form-control" type="number" name="container_maxmemory" id="container_maxmemory"
+							placeholder="e.g. 1000" value='{{ settings.container_maxmemory|default("") }}' />
+					</div>
+					<div class="form-group">
+						<label for="container_maxcpu">
+							Maximum per-container CPUs (float, e.g 1.5 means 1.5 cores at most)
+						</label>
+						<input class="form-control" type="text" name="container_maxcpu" id="container_maxcpu"
+							placeholder="e.g. 1.5" value='{{ settings.container_maxcpu|default("") }}' />
+					</div>
+				</div>
+
+				<div id="railway-fields" class="backend-fields">
+					<div class="form-group">
+						<label for="railway_api_token">
+							Railway API Token
+						</label>
+						<input class="form-control" type="password" name="railway_api_token" id="railway_api_token"
+							placeholder="Account or workspace token from railway.com/account/tokens"
+							value='{{ settings.railway_api_token|default("") }}' />
+						<small class="form-text text-muted">Create at railway.com/account/tokens. Use account or workspace token.</small>
+					</div>
+					<div class="form-group">
+						<label for="railway_project_id">
+							Railway Project ID
+						</label>
+						<input class="form-control" type="text" name="railway_project_id" id="railway_project_id"
+							placeholder="Project ID (Cmd/Ctrl+K in Railway dashboard to copy)"
+							value='{{ settings.railway_project_id|default("") }}' />
+					</div>
+					<div class="form-group">
+						<label for="railway_environment_id">
+							Railway Environment ID
+						</label>
+						<input class="form-control" type="text" name="railway_environment_id" id="railway_environment_id"
+							placeholder="Environment ID (Cmd/Ctrl+K in Railway dashboard to copy)"
+							value='{{ settings.railway_environment_id|default("") }}' />
+					</div>
+				</div>
+
+				<div class="form-group">
+					<label for="container_expiration">
+						Container Expiration in Minutes (how long a container will last before it's killed; 0 = never)
+					</label>
+					<input class="form-control" type="text" name="container_expiration" id="container_expiration"
+						placeholder="e.g. 30" value='{{ settings.container_expiration|default("") }}' />
+				</div>
+				<div class="col-md-13 text-center">
+					<button type="submit" tabindex="0" class="btn btn-md btn-success btn-outlined">
+						Submit
+					</button>
+					<a class="btn btn-danger" href="{{ url_for('.route_containers_dashboard') }}">Cancel</a>
+				</div>
+		</div>
+		<input type="hidden" name="nonce" value="{{ Session.nonce }}">
+		</form>
+	</div>
+	<h3>Instructions</h3>
+	<p id="docker-instructions">
+		<strong>Docker:</strong> The Base URL should be the local socket address of the Docker daemon, i.e.
+		<code>unix://var/run/docker.sock</code>, or it can be a remote SSH address, e.g.
+		<code>ssh://root@example.com</code>. In either case, sudo will not be executed. For a local socket, the user
+		CTFd is running as should have permissions for Docker; for SSH connections, the SSH user in the Base URL should
+		be root or have Docker permissions.
+	</p>
+	<p id="railway-instructions" class="d-none">
+		<strong>Railway:</strong> Use Railway's GraphQL API to create one service per user for container challenges.
+		Each service runs a Docker image and exposes TCP via Railway's TCP proxy (for netcat access). Create an API token
+		at <a href="https://railway.com/account/tokens" target="_blank">railway.com/account/tokens</a> (account or workspace token).
+		Get Project ID and Environment ID from your Railway project (Cmd/Ctrl+K in the dashboard). Challenge Docker images
+		must be pullable (e.g., Docker Hub, GHCR).
+	</p>
+</div>
+{% endblock content %}
+{% block scripts %}
+<script>
+(function() {
+	function toggleBackendFields() {
+		var backend = document.getElementById('container_backend').value;
+		var dockerFields = document.getElementById('docker-fields');
+		var railwayFields = document.getElementById('railway-fields');
+		var dockerInstructions = document.getElementById('docker-instructions');
+		var railwayInstructions = document.getElementById('railway-instructions');
+		if (backend === 'docker') {
+			dockerFields.style.display = 'block';
+			railwayFields.style.display = 'none';
+			dockerInstructions.classList.remove('d-none');
+			railwayInstructions.classList.add('d-none');
+		} else {
+			dockerFields.style.display = 'none';
+			railwayFields.style.display = 'block';
+			dockerInstructions.classList.add('d-none');
+			railwayInstructions.classList.remove('d-none');
+		}
+	}
+	document.getElementById('container_backend').addEventListener('change', toggleBackendFields);
+	toggleBackendFields();
+})();
+</script>
+{% endblock scripts %}
