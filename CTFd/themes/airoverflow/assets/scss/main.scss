@@ -147,3 +147,7 @@ body {
     border-radius: 8px;
   }
 }
+
+.no-caret::after {
+  display: none !important;
+}
