@@ -1,0 +1,1 @@
+function f(t,n){for(const e of Object.keys(n))n[e]instanceof Object&&Object.assign(n[e],f(t[e],n[e]));return Object.assign(t||{},n),t}function s(t){let n=t.concat();for(let e=0;e<t.length;e++)n[e]=t.slice(0,e+1).reduce(function(c,i){return c+i});return n}export{s as c,f as m};

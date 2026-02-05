@@ -1,359 +1,168 @@
-<div :class="getStyles()" role="document" x-data="Challenge" x-init='id = {{ challenge.id }}; max_attempts = {{ max_attempts }}; attempts = {{ attempts }}; ratingValue = {{ (rating.get('value') if rating else None) | tojson }}; ratingReview = {{ (rating.get('review', '') if rating else None) | tojson }};'>
-  <div class="modal-content">
-    <div class="modal-body py-4 px-4 px-sm-5">
+<div class="contents" x-data="Challenge"
+  x-init='id = {{ challenge.id }}; max_attempts = {{ max_attempts }}; attempts = {{ attempts }}; ratingValue = {{ (rating.get('
+  value') if rating else None) | tojson }}; ratingReview={{ (rating.get('review', '' ) if rating else None) | tojson }};
+  selectedRating=0; submission="" ;'>
 
-      <div>
-        <button type="button" class="btn-close float-end" data-bs-dismiss="modal" aria-label="Close"></button>
+  <!-- Header Section -->
+  <div class="mb-8">
+    <div class="flex flex-col gap-4">
+      <h1 class="text-4xl font-black tracking-tight text-white">{{ challenge.name }}</h1>
 
-        <ul class="nav nav-tabs">
-          <li class="nav-item">
-            <button class="nav-link active" data-bs-target="#challenge" @click="showChallenge()">
-              {% trans %}Challenge{% endtrans %}
-            </button>
-          </li>
+      <div class="flex flex-wrap items-center gap-3">
+        <!-- Category Pill -->
+        <span
+          class="px-3 py-1.5 bg-green-500/10 border border-green-500/20 rounded-lg text-green-400 text-[10px] font-black uppercase tracking-widest">
+          {{ challenge.category }}
+        </span>
 
-          {% block submissions %}
-            {% if Configs.view_self_submissions %}
-            <li class="nav-item">
-              <button class="nav-link challenge-submissions" data-bs-target="#submissions" @click="showSubmissions()">
-                {% if solves != None %}
-                  Submissions
-                {% endif %}
-              </button>
-            </li>
-            {% endif %}
-          {% endblock %}
+        {% if tags %}
+        {% for tag in tags %}
+        <span
+          class="px-3 py-1.5 bg-white/5 border border-white/5 rounded-lg text-muted-foreground text-[10px] font-bold uppercase tracking-widest">
+          {{ tag }}
+        </span>
+        {% endfor %}
+        {% endif %}
 
-          {% block solution %}
-            <li class="nav-item" x-show="getSolutionId()">
-              <button class="nav-link challenge-solution" data-bs-target="#solution" @click="showSolution()">
-                {% trans %}Solution{% endtrans %}
-              </button>
-            </li>
-          {% endblock %}
+        <span
+          class="px-3 py-1.5 bg-white/5 border border-white/10 rounded-lg text-white/50 text-[10px] font-bold tracking-widest uppercase">
+          {{ challenge.date or '2025-10-18' }}
+        </span>
 
-          {% block solves %}
-            {% if solves != None %}
-            <li class="nav-item">
-              <button class="nav-link challenge-solves" data-bs-target="#solves" @click="showSolves()">
-                  {{ ngettext("%(num)d Solve", "%(num)d Solves", solves) }}
-              </button>
-            </li>
-            {% endif %}
-          {% endblock %}
-        </ul>
+        {% if challenge.solved_by_me %}
+        <span
+          class="px-3 py-1.5 bg-emerald-500/20 border border-emerald-500/30 rounded-lg text-emerald-400 text-[10px] font-black uppercase tracking-widest flex items-center gap-1.5">
+          <i class="fas fa-check-circle"></i> Solved
+        </span>
+        {% endif %}
       </div>
+    </div>
 
-      <div>
-        <div class="tab-content">
-          <div role="tabpanel" class="tab-pane fade show active" id="challenge">
-            <h2 class="challenge-name text-center pt-3">
-              {{ challenge.name }}
-            </h2>
-            <h3 class="challenge-value text-center">
-              {{ challenge.value }}
-            </h3>
-
-
-            {% if tags %}
-              <div class="challenge-tags text-center pt-2 pb-3">
-                {% block tags %}
-                  {% for tag in tags %}
-                    <span class="challenge-tag badge bg-info">{{ tag }}</span>
-                  {% endfor %}
-                {% endblock %}
-              </div>
-            {% endif %}
-
-            <small class="challenge-attribution text-center text-muted">
-              {% block attribution %}{{ challenge.byline }}{% endblock %}
-            </small>
-
-            {% if Configs.challenge_ratings == "public" %}
-            <small class="challenge-ratings text-center text-muted d-block">
-              {% block ratings %}
-                {% if ratings %}
-                  <span><i class="fa-solid fa-thumbs-up"></i> {{ ratings.up }}</span>
-                  <span class="text-center px-2">
-                    {% if ratings.count %}
-                    ({{ ((ratings.up / (ratings.count)) * 100) | int }}% liked)
-                    {% endif %}
-                  </span>
-                  <span><i class="fa-solid fa-thumbs-down"></i> {{ ratings.down }}</span>
-                {% endif %}
-              {% endblock %}
-            </small>
-            {% endif %}
-
-            <span class="challenge-desc">{% block description %}{{ challenge.html }}{% endblock %}</span>
-
-            {% if challenge.connection_info %}
-              <div class="mb-2">
-                <span class="challenge-connection-info">
-                  {% block connection_info %}
-                    {% set conn = challenge.connection_info %}
-                    {% if not conn %}
-                    {% elif conn.startswith("http") %}
-                      {{ conn | urlize(target="_blank") }}
-                    {% else %}
-                      <code>{{ conn }}</code>
-                    {% endif %}
-                  {% endblock %}
-                </span>
-              </div>
-            {% endif %}
-
-            {% if hints %}
-              <div class="challenge-hints hint-row row">
-                <div class="col-12 mb-3">
-                {% for hint in hints | sort(attribute="cost") %}
-                  <div x-data="Hint" x-init="id = {{ hint.id }}">
-                    {% if hint.content %}
-                    <details>
-                      <summary>{% trans %}View Hint{% endtrans %}{% if hint.title %}: {{ hint.title }}{% endif %}</summary>
-                      <div>{{ hint.html | safe }}</div>
-                    </details>
-                    {% else %}
-                    <details @toggle="showHint(event)">
-                      {% if hint.title %}
-                      <summary>{{ hint.title }} (Cost: {{ hint.cost }} point{{ hint.cost|pluralize }})</summary>
-                      {% else %}
-                      <summary>Unlock Hint for {{ hint.cost }} point{{ hint.cost|pluralize }}</summary>
-                      {% endif %}
-                      <div x-html="html"></div>
-                    </details>
-                    {% endif %}
-                  </div>
-                {% endfor %}
-                </div>
-              </div>
-            {% endif %}
-
-            {% if files %}
-              <div class="row challenge-files text-center pb-3">
-                {% for file in files %}
-                  <div class="col-md-4 col-sm-4 col-xs-12 file-button-wrapper d-block">
-                    {% set segments = file.split('/') %}
-                    {% set token = file.split('?') | last %}
-                    {% if token %}
-                      {% set filename = segments | last | replace("?" + token, "") %}
-                    {% else %}
-                      {% set filename = segments | last %}
-                    {% endif %}
-                    <a
-                        class="btn btn-info btn-file mb-1 d-inline-block px-2 w-100 text-truncate"
-                        href="{{ file }}"
-                        title="{{ filename }}"
-                    >
-                      <i class="fas fa-download"></i>
-                      <small>
-                        {{ filename }}
-                      </small>
-                    </a>
-                  </div>
-                {% endfor %}
-              </div>
-            {% endif %}
-
-            <template x-if="max_attempts > 0">
-              <p class="text-center">
-                <span x-text="attempts"></span>/<span x-text="max_attempts"></span> {% trans c=max_attempts %}attempt{% pluralize %}attempts{% endtrans %}
-              </p>
-            </template>
-
-            <div class="row submit-row">
-              <div class="col-12 col-sm-8">
-                {% block input %}
-                  <input
-                      id="challenge-id" class="challenge-id" type="hidden"
-                      value="{{ challenge.id }}"
-                  >
-                  <input
-                      id="challenge-input" class="challenge-input form-control"
-                      type="text" name="submission"
-                      @keyup.enter="submitChallenge()"
-                      placeholder="{% trans %}Flag{% endtrans %}" x-model="submission"
-                  >
-                {% endblock %}
-              </div>
-
-              <div class="col-12 col-sm-4 mt-3 mt-sm-0 key-submit">
-                {% block submit %}
-                  <button
-                      id="challenge-submit"
-                      class="challenge-submit btn btn-outline-secondary w-100 h-100" type="submit"
-                      @click.debounce.500ms="submitChallenge()"
-                  >
-                    {% trans %}Submit{% endtrans %}
-                  </button>
-                {% endblock %}
-              </div>
-            </div>
-
-            <div class="row notification-row">
-              <div class="col-12">
-                <template x-if="response">
-                  {# This alert is re-used for all alerts, so it's important not to make it dismissible #}
-                  <div class="alert text-center w-100 mt-3"
-                      :class="{
-                        'alert-success': response.data.status == 'correct',
-                        'alert-info': response.data.status == 'already_solved',
-                        'alert-danger': response.data.status == 'incorrect',
-                        'alert-warning': response.data.status == 'paused',
-                      }" role="alert"
-                  >
-                    <strong x-text="response.data.message"></strong>
-                    <div x-show="(response.data.status == 'correct' || response.data.status == 'already_solved')">
-                      <div x-show="getNextId()">
-                        <button @click="nextChallenge()" class="btn btn-info mt-3">
-                          {% trans %}Next Challenge{% endtrans %}
-                        </button>
-                      </div>
-
-                      {% if Configs.social_shares %}
-                      <div>
-                        <button x-show="!share_url" @click="getShareUrl()" class="btn btn-sm btn-outline-info mt-3">
-                          {% trans %}Share{% endtrans %}
-                        </button>
-                        <div class="btn-group mt-3" role="group" x-show="share_url">
-                          <button type="button" class="btn btn-sm btn-outline-secondary" @click="copyShareUrl()" data-bs-toggle="tooltip" data-bs-title="Copied!">
-                            <i class="fa-solid fa-copy"></i>
-                          </button>
-                          <a :href="'https://twitter.com/intent/tweet?url=' + encodeURIComponent(share_url)" role="button" class="btn btn-sm btn-outline-secondary" target="_blank">
-                            <i class="fa-brands fa-twitter"></i>
-                          </a>
-                          <a :href="'https://www.facebook.com/sharer/sharer.php?u=' + encodeURIComponent(share_url)" role="button" class="btn btn-sm btn-outline-secondary" target="_blank">
-                            <i class="fa-brands fa-facebook-f"></i>
-                          </a>
-                          <a :href="'http://www.linkedin.com/shareArticle?url=' + encodeURIComponent(share_url)" role="button" class="btn btn-sm btn-outline-secondary" target="_blank">
-                            <i class="fa-brands fa-linkedin-in"></i>
-                          </a>
-                        </div>
-                      </div>
-                      {% endif %}
-
-                      {% if Configs.challenge_ratings != "disabled" %}
-                      <div class="mt-3">
-                        <hr>
-                        <div class="text-center">
-                          <p class="mb-2">{% trans %}Rate this challenge:{% endtrans %}</p>
-                          <div class="rating-buttons mb-2" x-init="selectedRating = ratingValue || 0;">
-                            <button 
-                              class="btn btn-outline-success me-2" 
-                              :class="{ 'active': selectedRating === 1 }"
-                              @click="selectedRating = 1"
-                            >
-                              <i class="fa-solid fa-thumbs-up"></i>
-                            </button>
-                            <button 
-                              class="btn btn-outline-danger" 
-                              :class="{ 'active': selectedRating === -1 }"
-                              @click="selectedRating = -1"
-                            >
-                              <i class="fa-solid fa-thumbs-down"></i>
-                            </button>
-                          </div>
-                          <div class="mt-3">
-                            <textarea 
-                              class="form-control" 
-                              rows="2" 
-                              x-model="ratingReview"
-                              placeholder="{% trans %}Write a review (optional){% endtrans %}"
-                              maxlength="2000"
-                            ></textarea>
-                          </div>
-                          <div class="mt-3">
-                            <button 
-                              @click="submitRating()"
-                              class="btn btn-primary"
-                              :disabled="!selectedRating"
-                            >
-                              {% trans %}Submit{% endtrans %}
-                            </button>
-                          </div>
-                          <div x-show="ratingSubmitted" class="text-success mt-2">
-                            <small>{% trans %}Thank you for your rating!{% endtrans %}</small>
-                          </div>
-                        </div>
-                      </div>
-                      {% endif %}
-                    </div>
-                  </div>
-                </template>
-              </div>
-            </div>
-          </div>
-
-          <div role="tabpanel" class="tab-pane fade" id="submissions">
-            <div class="row">
-              <div class="col-md-12">
-                <table class="table table-striped align-middle text-center">
-                  <thead>
-                  <tr>
-                    <th>{% trans %}Submission{% endtrans %}</th>
-                    <th>{% trans %}Type{% endtrans %}</th>
-                    <th>{% trans %}Date{% endtrans %}</th>
-                  </tr>
-                  </thead>
-                  <tbody id="challenge-submission-names">
-                  <template x-for="submission in submissions">
-                    <tr>
-                      <td x-data="{ truncate: true }">
-                        <code x-text="truncate ? '*'.repeat(submission.provided.length) : submission.provided"></code>
-                        <button class="btn btn-link p-0 pl-1" @click="truncate = !truncate">
-                          <i :class="truncate ? 'fas fa-eye' : 'fas fa-eye-slash'"></i>
-                        </button>
-                      </td>
-                      <td x-text="submission.type"></td>
-                      <td x-text="submission.date"></td>
-                    </tr>
-                  </template>
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          </div>
-
-          <div role="tabpanel" class="tab-pane fade" id="solves">
-            <div class="row">
-              <div class="col-md-12">
-                <table class="table table-striped align-middle text-center">
-                  <thead>
-                  <tr>
-                    <th>{% trans %}Name{% endtrans %}</th>
-                    <th>{% trans %}Date{% endtrans %}</th>
-                  </tr>
-                  </thead>
-                  <tbody id="challenge-solves-names">
-                  <template x-for="solve in solves">
-                    <tr>
-                      <td>
-                        <a :href="solve.account_url" x-text="solve.name"></a>
-                      </td>
-                      <td x-text="solve.date"></td>
-                    </tr>
-                  </template>
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          </div>
-
-          <div role="tabpanel" class="tab-pane fade" id="solution">
-            <div class="row">
-              <div class="col-md-12">
-                <div class="challenge-solution-content pt-3">
-                  <template x-if="solution">
-                    <div x-html="solution" style="white-space: pre-wrap;">
-                    </div>
-                  </template>
-                </div>
-              </div>
-            </div>
-          </div>
-
+    <!-- Points and Solve Rate -->
+    <div class="flex justify-end items-end gap-1.5 -mt-12">
+      <div class="text-right">
+        <div class="text-3xl font-black text-white leading-none">{{ challenge.value }} <span
+            class="text-xs font-bold text-muted-foreground/60 uppercase tracking-tighter ml-1">points</span></div>
+        <div
+          class="text-[10px] font-black text-muted-foreground uppercase tracking-widest mt-2 flex items-center justify-end gap-2">
+          <span class="text-white/80">{{ solves or 0 }} Solves</span>
+          <span class="p-0.5 rounded bg-white/10"></span>
+          <span class="text-white/80">79% solve rate</span>
         </div>
       </div>
     </div>
   </div>
+
+  <hr class="border-white/5 mb-8">
+
+  <!-- Main Card -->
+  <div
+    class="bg-[#0a0a0a]/50 border border-white/5 rounded-3xl p-8 backdrop-blur-xl shadow-2xl relative overflow-hidden group">
+    <!-- Subtle glow effect -->
+    <div
+      class="absolute -top-24 -left-24 w-48 h-48 bg-white/5 blur-[100px] rounded-full group-hover:bg-white/10 transition-all duration-700">
+    </div>
+
+    <div class="relative z-10">
+      <div class="challenge-desc text-white/80 leading-relaxed font-medium mb-8">
+        {% block description %}{{ challenge.html | safe }}{% endblock %}
+      </div>
+
+      {% if challenge.connection_info %}
+      <div
+        class="mb-8 p-4 bg-white/5 border border-white/5 rounded-2xl flex items-center justify-between group/conn hover:bg-white/10 transition-all">
+        <div class="flex items-center gap-3">
+          <div class="p-2 rounded-xl bg-green-500/10 text-green-400">
+            <i class="fas fa-terminal text-sm"></i>
+          </div>
+          <code class="text-sm font-mono text-white/70">{{ challenge.connection_info }}</code>
+        </div>
+        <button
+          class="px-6 py-2 bg-green-500 hover:bg-green-400 text-black text-[11px] font-black uppercase tracking-widest rounded-xl transition-all shadow-[0_0_20px_rgba(34,197,94,0.3)]">
+          Start Container
+        </button>
+      </div>
+      {% endif %}
+
+      {% if files %}
+      <div class="flex flex-wrap gap-3 mb-8">
+        {% for file in files %}
+        {% set segments = file.split('/') %}
+        {% set filename = (segments | last).split('?') | first %}
+        <a href="{{ file }}"
+          class="flex items-center gap-3 px-4 py-3 bg-white/5 hover:bg-white/10 border border-white/5 rounded-2xl text-xs font-bold text-white transition-all group/file">
+          <i class="fas fa-file-download text-muted-foreground group-hover/file:text-white transition-colors"></i>
+          <span>{{ filename }}</span>
+        </a>
+        {% endfor %}
+      </div>
+      {% endif %}
+
+      <!-- Flag Submission Area -->
+      <div class="relative">
+        <div class="flex gap-4">
+          <div class="relative flex-grow">
+            <div class="absolute inset-y-0 left-5 flex items-center pointer-events-none text-muted-foreground/50">
+              <i class="fas fa-flag text-xs"></i>
+            </div>
+            <input type="text" x-model="submission" @keyup.enter="submitChallenge()"
+              class="w-full bg-[#111] border border-white/5 focus:border-white/20 rounded-2xl py-4 pl-12 pr-6 text-sm text-white placeholder:text-muted-foreground/30 focus:outline-none focus:ring-4 focus:ring-white/5 transition-all"
+              placeholder="Flag{s0m3_v3ry_s3cr3t_fl4g}">
+          </div>
+          <button @click="submitChallenge()"
+            class="px-8 bg-indigo-600 hover:bg-indigo-500 text-white text-[11px] font-black uppercase tracking-widest rounded-2xl transition-all shadow-lg hover:shadow-indigo-500/20 active:scale-95">
+            Submit Flag
+          </button>
+        </div>
+
+        <!-- Notifications -->
+        <template x-if="response">
+          <div class="mt-4 p-4 rounded-2xl text-sm font-bold animate-in fade-in slide-in-from-top-2" :class="{
+                          'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20': response.data.status == 'correct',
+                          'bg-blue-500/10 text-blue-400 border border-blue-500/20': response.data.status == 'already_solved',
+                          'bg-rose-500/10 text-rose-400 border border-rose-500/20': response.data.status == 'incorrect',
+                          'bg-amber-500/10 text-amber-400 border border-amber-500/20': response.data.status == 'paused',
+                      }">
+            <div class="flex items-center gap-3">
+              <i class="fas" :class="{
+                              'fa-check-circle': response.data.status == 'correct' || response.data.status == 'already_solved',
+                              'fa-times-circle': response.data.status == 'incorrect',
+                              'fa-pause-circle': response.data.status == 'paused'
+                          }"></i>
+              <span x-text="response.data.message"></span>
+            </div>
+          </div>
+        </template>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Difficulty Rating -->
+<div class="mt-12 p-8 bg-white/2 border border-white/5 rounded-3xl">
+  <h3 class="text-sm font-black text-indigo-400 uppercase tracking-widest mb-6 flex items-center gap-3">
+    <i class="far fa-star text-xs"></i>
+    Difficulty Votes
+  </h3>
+
+  <div class="flex flex-wrap items-center gap-6">
+    <div class="flex items-center gap-4">
+      <span class="text-xs font-bold text-muted-foreground">Level:</span>
+      <select x-model="selectedRating"
+        class="bg-[#111] border border-white/10 rounded-xl py-2 px-4 text-xs text-white focus:outline-none focus:border-indigo-500/50 transition-all">
+        <option value="0">Select level</option>
+        <option value="1">Easy</option>
+        <option value="2">Medium</option>
+        <option value="3">Hard</option>
+      </select>
+    </div>
+    <button @click="submitRating()" :disabled="!selectedRating"
+      class="px-6 py-2.5 bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-400 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all disabled:opacity-30 disabled:grayscale">
+      Submit Vote
+    </button>
+  </div>
+</div>
+
+</div>
+
 </div>

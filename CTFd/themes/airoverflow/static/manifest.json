@@ -34,7 +34,9 @@
     "src": "assets/js/challenges.js",
     "isEntry": true,
     "imports": [
-      "assets/js/index.js"
+      "assets/js/index.js",
+      "_index2.js",
+      "_echarts.js"
     ]
   },
   "assets/js/scoreboard.js": {
@@ -43,6 +45,7 @@
     "isEntry": true,
     "imports": [
       "assets/js/index.js",
+      "_math.js",
       "_index2.js",
       "_echarts.js"
     ]
@@ -63,6 +66,7 @@
       "assets/js/index.js",
       "_userscore.js",
       "_index2.js",
+      "_math.js",
       "_echarts.js"
     ]
   },
@@ -75,6 +79,7 @@
       "_clipboard.js",
       "_userscore.js",
       "_index2.js",
+      "_math.js",
       "_echarts.js"
     ]
   },
@@ -94,6 +99,7 @@
       "assets/js/index.js",
       "_userscore.js",
       "_index2.js",
+      "_math.js",
       "_echarts.js"
     ]
   },
@@ -105,6 +111,7 @@
       "assets/js/index.js",
       "_userscore.js",
       "_index2.js",
+      "_math.js",
       "_echarts.js"
     ]
   },
@@ -136,11 +143,14 @@
       "_echarts.js"
     ]
   },
+  "_math.js": {
+    "file": "assets/math.js"
+  },
   "_userscore.js": {
     "file": "assets/userscore.js",
     "imports": [
       "assets/js/index.js",
-      "_index2.js"
+      "_math.js"
     ]
   },
   "assets/scss/main.scss": {

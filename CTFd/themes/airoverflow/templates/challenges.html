@@ -2,121 +2,116 @@
 
 {% block content %}
 
-<div class="container py-4">
-  <!-- Hero / Banner Section -->
-  <div class="mb-8">
-    <div class="flex justify-between items-start mb-6">
-      <div>
-        <h1 class="text-4xl font-bold text-white mb-2 tracking-tight">Challenges</h1>
-        <p class="text-muted-foreground text-lg">Practice your skills with these curated wargames and training
-          platforms</p>
-      </div>
-      <div class="flex items-center gap-2">
-        <span class="text-muted-foreground font-mono" x-data
-          x-text="$store.challenge.data.challenges.length + ' Challenges'"></span>
-        <button class="p-2 text-muted-foreground hover:text-white transition-colors">
-          <i class="fas fa-sync-alt"></i>
-        </button>
-      </div>
-    </div>
+<div x-data="ChallengeBoard" @load-challenges.window="loadChallenges()"
+  @load-challenge.window="loadChallenge($event.detail)" @popstate.window="handlePopState($event)">
 
-    <div class="flex flex-col gap-5 bg-card/40 border border-white/5 rounded-2xl p-6 backdrop-blur-2xl shadow-2xl">
-      <div class="flex gap-4 items-center">
-        <!-- Search -->
-        <div class="relative flex-grow group">
-          <input type="text" placeholder="Search challenges..."
-            class="w-full bg-black/40 border border-white/10 rounded-xl pl-5 pr-14 py-3.5 text-white placeholder-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary/50 focus:border-primary/50 transition-all font-medium text-sm shadow-inner"
-            x-model="searchQuery">
-          <button
-            class="absolute right-1.5 top-1/2 transform -translate-y-1/2 bg-primary hover:bg-primary/90 text-white p-2.5 rounded-lg transition-all shadow-lg hover:shadow-primary/25 active:scale-95">
-            <i class="fas fa-search text-sm"></i>
+  <!-- List View -->
+  <div x-show="view === 'list'" x-transition:enter="transition ease-out duration-300"
+    x-transition:enter-start="opacity-0 transform -translate-y-4"
+    x-transition:enter-end="opacity-100 transform translate-y-0" x-transition:leave="transition ease-in duration-200"
+    x-transition:leave-start="opacity-100 transform translate-y-0"
+    x-transition:leave-end="opacity-0 transform -translate-y-4">
+
+    <div class="mb-8">
+      <div class="flex justify-between items-start mb-6">
+        <div>
+          <h1 class="text-4xl font-bold text-white mb-2 tracking-tight">Challenges</h1>
+          <p class="text-muted-foreground text-lg">Practice your skills with these curated wargames and training
+            platforms</p>
+        </div>
+        <div class="flex items-center gap-2">
+          <span class="text-muted-foreground font-mono" x-text="challenges.length + ' Challenges'"></span>
+          <button class="p-2 text-muted-foreground hover:text-white transition-colors" @click="loadChallenges()">
+            <i class="fas fa-sync-alt"></i>
           </button>
         </div>
-
-        <!-- Sort -->
-        <div class="flex items-center gap-3 min-w-[240px] bg-black/40 border border-white/10 rounded-xl px-4 py-1">
-          <span class="text-muted-foreground text-xs font-bold uppercase tracking-wider whitespace-nowrap">Sort
-            by:</span>
-          <select
-            class="bg-transparent border-none text-white focus:ring-0 flex-grow font-bold text-sm cursor-pointer py-2.5">
-            <option>Latest</option>
-            <option>Oldest</option>
-            <option>Most Solved</option>
-            <option>Least Solved</option>
-          </select>
-        </div>
       </div>
 
-      <!-- Filters Row -->
-      <div class="flex flex-col gap-4">
-        <!-- Categories -->
-        <div class="flex items-center gap-2 flex-wrap">
-          <span
-            class="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mr-3 w-16">Categories</span>
-          <button
-            class="px-4 py-1.5 rounded-full text-[11px] font-bold bg-white text-black shadow-[0_0_15px_rgba(255,255,255,0.2)] transition-all transform hover:scale-105">All</button>
-          <template x-for="cat in getCategories()" :key="cat">
+      <div class="flex flex-col gap-5 bg-card/40 border border-white/5 rounded-2xl p-6 backdrop-blur-2xl shadow-2xl">
+        <div class="flex gap-4 items-center">
+          <!-- Search -->
+          <div class="relative flex-grow group">
+            <input type="text" placeholder="Search challenges..."
+              class="w-full bg-black/40 border border-white/10 rounded-xl pl-5 pr-14 py-3.5 text-white placeholder-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary/50 focus:border-primary/50 transition-all font-medium text-sm shadow-inner"
+              x-model="searchQuery">
             <button
-              class="px-4 py-1.5 rounded-full text-[11px] font-bold bg-white/5 border border-white/5 text-muted-foreground hover:text-white hover:bg-white/10 hover:border-white/10 transition-all uppercase transform hover:scale-105"
-              x-text="cat"></button>
-          </template>
+              class="absolute right-1.5 top-1/2 transform -translate-y-1/2 bg-primary hover:bg-primary/90 text-white p-2.5 rounded-lg transition-all shadow-lg hover:shadow-primary/25 active:scale-95">
+              <i class="fas fa-search text-sm"></i>
+            </button>
+          </div>
+
+          <!-- Sort -->
+          <div class="flex items-center gap-3 min-w-[240px] bg-black/40 border border-white/10 rounded-xl px-4 py-1">
+            <span class="text-muted-foreground text-xs font-bold uppercase tracking-wider whitespace-nowrap">Sort
+              by:</span>
+            <select
+              class="bg-transparent border-none text-white focus:ring-0 flex-grow font-bold text-sm cursor-pointer py-2.5">
+              <option>Latest</option>
+              <option>Oldest</option>
+              <option>Most Solved</option>
+              <option>Least Solved</option>
+            </select>
+          </div>
         </div>
 
-        <!-- Difficulty -->
-        <div class="flex items-center gap-2 flex-wrap">
-          <span
-            class="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mr-3 w-16">Difficulty</span>
-          <button
-            class="px-4 py-1.5 rounded-full text-[11px] font-bold bg-white text-black shadow-[0_0_15px_rgba(255,255,255,0.2)] transition-all">All</button>
-          <button
-            class="px-4 py-1.5 rounded-full text-[11px] font-bold bg-white/5 border border-white/5 text-muted-foreground hover:text-white hover:bg-white/10 hover:border-white/10 transition-all">Easy</button>
-          <button
-            class="px-4 py-1.5 rounded-full text-[11px] font-bold bg-white/5 border border-white/5 text-muted-foreground hover:text-white hover:bg-white/10 hover:border-white/10 transition-all">Medium</button>
-          <button
-            class="px-4 py-1.5 rounded-full text-[11px] font-bold bg-white/5 border border-white/5 text-muted-foreground hover:text-white hover:bg-white/10 hover:border-white/10 transition-all">Hard</button>
-          <button
-            class="px-4 py-1.5 rounded-full text-[11px] font-bold bg-white/5 border border-white/5 text-muted-foreground hover:text-white hover:bg-white/10 hover:border-white/10 transition-all">Expert</button>
-          <button
-            class="px-4 py-1.5 rounded-full text-[11px] font-bold bg-white/5 border border-white/5 text-muted-foreground hover:text-white hover:bg-white/10 hover:border-white/10 transition-all">Insane</button>
-        </div>
-
-        <!-- Level -->
-        <div class="flex items-center gap-2 flex-wrap">
-          <span class="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mr-3 w-16">Level</span>
-          <button
-            class="px-4 py-1.5 rounded-full text-[11px] font-bold bg-white text-black shadow-[0_0_15px_rgba(255,255,255,0.2)] transition-all">All</button>
-          <button
-            class="px-4 py-1.5 rounded-full text-[11px] font-bold bg-white/5 border border-white/5 text-muted-foreground hover:text-white hover:bg-white/10 hover:border-white/10 transition-all">Unknown</button>
-          <template x-for="i in 10">
+        <!-- Filters Row -->
+        <div class="flex flex-col gap-4">
+          <!-- Categories -->
+          <div class="flex items-center gap-2 flex-wrap">
+            <span
+              class="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mr-3 w-16">Categories</span>
             <button
-              class="w-8 h-8 flex items-center justify-center rounded-full text-[11px] font-bold bg-white/5 border border-white/5 text-muted-foreground hover:text-white hover:bg-white/10 hover:border-white/10 transition-all"
-              x-text="i"></button>
-          </template>
+              class="px-4 py-1.5 rounded-full text-[11px] font-bold bg-white text-black shadow-[0_0_15px_rgba(255,255,255,0.2)] transition-all transform hover:scale-105">All</button>
+            <template x-for="cat in getCategories()" :key="cat">
+              <button
+                class="px-4 py-1.5 rounded-full text-[11px] font-bold bg-white/5 border border-white/5 text-muted-foreground hover:text-white hover:bg-white/10 hover:border-white/10 transition-all uppercase transform hover:scale-105"
+                x-text="cat"></button>
+            </template>
+          </div>
+
+          <!-- Difficulty -->
+          <div class="flex items-center gap-2 flex-wrap">
+            <span
+              class="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mr-3 w-16">Difficulty</span>
+            <button
+              class="px-4 py-1.5 rounded-full text-[11px] font-bold bg-white text-black shadow-[0_0_15px_rgba(255,255,255,0.2)] transition-all">All</button>
+            <button
+              class="px-4 py-1.5 rounded-full text-[11px] font-bold bg-white/5 border border-white/5 text-muted-foreground hover:text-white hover:bg-white/10 hover:border-white/10 transition-all">Easy</button>
+            <button
+              class="px-4 py-1.5 rounded-full text-[11px] font-bold bg-white/5 border border-white/5 text-muted-foreground hover:text-white hover:bg-white/10 hover:border-white/10 transition-all">Medium</button>
+            <button
+              class="px-4 py-1.5 rounded-full text-[11px] font-bold bg-white/5 border border-white/5 text-muted-foreground hover:text-white hover:bg-white/10 hover:border-white/10 transition-all">Hard</button>
+            <button
+              class="px-4 py-1.5 rounded-full text-[11px] font-bold bg-white/5 border border-white/5 text-muted-foreground hover:text-white hover:bg-white/10 hover:border-white/10 transition-all">Expert</button>
+            <button
+              class="px-4 py-1.5 rounded-full text-[11px] font-bold bg-white/5 border border-white/5 text-muted-foreground hover:text-white hover:bg-white/10 hover:border-white/10 transition-all">Insane</button>
+          </div>
+
+          <!-- Level -->
+          <div class="flex items-center gap-2 flex-wrap">
+            <span class="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mr-3 w-16">Level</span>
+            <button
+              class="px-4 py-1.5 rounded-full text-[11px] font-bold bg-white text-black shadow-[0_0_15px_rgba(255,255,255,0.2)] transition-all">All</button>
+            <button
+              class="px-4 py-1.5 rounded-full text-[11px] font-bold bg-white/5 border border-white/5 text-muted-foreground hover:text-white hover:bg-white/10 hover:border-white/10 transition-all">Unknown</button>
+            <template x-for="i in [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]">
+              <button
+                class="w-8 h-8 flex items-center justify-center rounded-full text-[11px] font-bold bg-white/5 border border-white/5 text-muted-foreground hover:text-white hover:bg-white/10 hover:border-white/10 transition-all"
+                x-text="i"></button>
+            </template>
+          </div>
+        </div>
+      </div>
+
+      <div
+        class="flex justify-between items-center mt-6 mb-2 text-[10px] font-bold font-mono text-muted-foreground uppercase tracking-widest px-2">
+        <span x-text="'Showing ' + challenges.length + ' challenges of ' + challenges.length"></span>
+        <div class="flex items-center gap-2">
+          <span class="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse shadow-[0_0_10px_#22c55e]"></span>
+          <span>Live results</span>
         </div>
       </div>
     </div>
-
-    <div
-      class="flex justify-between items-center mt-6 mb-2 text-[10px] font-bold font-mono text-muted-foreground uppercase tracking-widest px-2">
-      <span
-        x-text="'Showing ' + $store.challenge.data.challenges.length + ' challenges of ' + $store.challenge.data.challenges.length"></span>
-      <div class="flex items-center gap-2">
-        <span class="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse shadow-[0_0_10px_#22c55e]"></span>
-        <span>Live results</span>
-      </div>
-    </div>
-  </div>
-
-  <div class="row">
-    <div class="col-md-12">
-      {% include "components/errors.html" %}
-    </div>
-  </div>
-
-  <div x-data="ChallengeBoard" @load-challenges.window="loadChallenges()"
-    @load-challenge.window="loadChallenge($event.detail)">
-    <div x-ref="challengeWindow" id="challenge-window" class="modal fade" tabindex="-1" role="dialog" x-data=""
-      x-html="$store.challenge.data.view"></div>
 
     <div x-show="!loaded">
       <div class="min-vh-50 d-flex align-items-center">
@@ -139,16 +134,16 @@
         <div class="col-span-2 text-right">Status</div>
       </div>
 
-      <template x-for="(category, idx) in getCategories()" :key="idx">
+      <template x-for="(category, catIdx) in getCategories()" :key="catIdx">
         <div class="mb-0">
           <div class="challenges-col flex flex-col gap-0">
-            <template x-for="(c, idx) in getChallenges(category)" :key="c.id">
+            <template x-for="(c, chalIdx) in getChallenges(category)" :key="c.id">
               <div class="my-0 group">
                 <div
                   class="w-full text-left relative overflow-hidden transition-all duration-200 rounded-md p-0 group hover:bg-white/[0.04] cursor-pointer border-b border-white/5 last:border-0"
                   :class="[
-                          ...c.tags.map((tag) => `tag-${tag.value.replace(/ /g, '-')}`)
-                        ]" :value="c.id" @click="loadChallenge(c.id)">
+                            ...c.tags.map((tag) => `tag-${tag.value.replace(/ /g, '-')}`)
+                          ]" :value="c.id" @click="loadChallenge(c.id)">
 
                   <div class="grid grid-cols-12 gap-4 items-center px-4 h-14 relative z-10 w-full">
                     <!-- Challenge Name & Icon -->
@@ -156,13 +151,13 @@
                       <div
                         class="w-8 h-8 rounded-full flex items-center justify-center font-bold text-[10px] shadow-md transition-transform group-hover:scale-105 shrink-0"
                         :class="{
-                                    'bg-green-500 text-black shadow-green-500/10': c.category === 'web',
-                                    'bg-red-500 text-white shadow-red-500/10': c.category === 'pwn',
-                                    'bg-blue-500 text-white shadow-blue-500/10': c.category === 'crypto',
-                                    'bg-orange-500 text-white shadow-orange-500/10': c.category === 'misc',
-                                    'bg-purple-500 text-white shadow-purple-500/10': c.category === 'forensics',
-                                    'bg-gray-700 text-white shadow-gray-500/10': !['web', 'pwn', 'crypto', 'misc', 'forensics'].includes(c.category)
-                                }">
+                                      'bg-green-500 text-black shadow-green-500/10': c.category === 'web',
+                                      'bg-red-500 text-white shadow-red-500/10': c.category === 'pwn',
+                                      'bg-blue-500 text-white shadow-blue-500/10': c.category === 'crypto',
+                                      'bg-orange-500 text-white shadow-orange-500/10': c.category === 'misc',
+                                      'bg-purple-500 text-white shadow-purple-500/10': c.category === 'forensics',
+                                      'bg-gray-700 text-white shadow-gray-500/10': !['web', 'pwn', 'crypto', 'misc', 'forensics'].includes(c.category)
+                                  }">
                         <span x-text="c.name.substring(0,2).toUpperCase()"></span>
                       </div>
                       <div class="flex flex-col overflow-hidden min-w-0">
@@ -185,13 +180,13 @@
                       <span
                         class="px-2.5 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider border transition-all"
                         :class="{
-                                'border-green-500/20 bg-green-500/5 text-green-500 group-hover:bg-green-500/10': c.category === 'web',
-                                'border-red-500/20 bg-red-500/5 text-red-500 group-hover:bg-red-500/10': c.category === 'pwn',
-                                'border-blue-500/20 bg-blue-500/5 text-blue-500 group-hover:bg-blue-500/10': c.category === 'crypto',
-                                'border-orange-500/20 bg-orange-500/5 text-orange-500 group-hover:bg-orange-500/10': c.category === 'misc',
-                                'border-purple-500/20 bg-purple-500/5 text-purple-500 group-hover:bg-purple-500/10': c.category === 'forensics',
-                                'border-gray-500/20 bg-gray-500/5 text-gray-400 group-hover:bg-gray-500/10': !['web', 'pwn', 'crypto', 'misc', 'forensics'].includes(c.category)
-                            }" x-text="c.category"></span>
+                                  'border-green-500/20 bg-green-500/5 text-green-500 group-hover:bg-green-500/10': c.category === 'web',
+                                  'border-red-500/20 bg-red-500/5 text-red-500 group-hover:bg-red-500/10': c.category === 'pwn',
+                                  'border-blue-500/20 bg-blue-500/5 text-blue-500 group-hover:bg-blue-500/10': c.category === 'crypto',
+                                  'border-orange-500/20 bg-orange-500/5 text-orange-500 group-hover:bg-orange-500/10': c.category === 'misc',
+                                  'border-purple-500/20 bg-purple-500/5 text-purple-500 group-hover:bg-purple-500/10': c.category === 'forensics',
+                                  'border-gray-500/20 bg-gray-500/5 text-gray-400 group-hover:bg-gray-500/10': !['web', 'pwn', 'crypto', 'misc', 'forensics'].includes(c.category)
+                              }" x-text="c.category"></span>
                     </div>
 
                     <!-- Solve Ratio -->
@@ -226,6 +221,95 @@
       </template>
     </div>
   </div>
+
+  <!-- Detail View -->
+  <div x-show="view === 'detail'" x-transition:enter="transition ease-out duration-300"
+    x-transition:enter-start="opacity-0 transform translate-y-4"
+    x-transition:enter-end="opacity-100 transform translate-y-0" x-transition:leave="transition ease-in duration-200"
+    x-transition:leave-start="opacity-100 transform translate-y-0"
+    x-transition:leave-end="opacity-0 transform translate-y-4">
+
+    <!-- Detail Page Header/TopBar -->
+    <div class="flex justify-between items-center mb-8 px-2">
+      <button @click="goBack()"
+        class="flex items-center gap-2 group text-muted-foreground hover:text-white transition-colors duration-200">
+        <div
+          class="p-2.5 rounded-xl bg-white/5 border border-white/5 group-hover:bg-white/10 group-hover:border-white/10 transition-all shadow-lg group-hover:shadow-white/5">
+          <i class="fas fa-arrow-left text-xs transition-transform group-hover:-translate-x-1"></i>
+        </div>
+        <span class="font-bold text-sm tracking-tight uppercase">Back</span>
+      </button>
+
+      <button @click="refreshChallenge()"
+        class="flex items-center gap-2.5 px-5 py-2.5 bg-white/5 hover:bg-white/10 border border-white/5 rounded-2xl text-xs font-black text-muted-foreground hover:text-white transition-all shadow-lg hover:shadow-white/5 group">
+        <i class="fas fa-sync-alt transition-transform group-hover:rotate-180 duration-500"></i>
+        <span class="uppercase tracking-widest">Refresh</span>
+      </button>
+    </div>
+
+    <!-- Main Two-Column Content -->
+    <div class="grid grid-cols-12 gap-8 items-start">
+      <!-- Content Column (8/12) -->
+      <div class="col-span-12 lg:col-span-8 flex flex-col gap-8">
+        <div id="challenge-content-slot" x-html="$store.challenge.data.view">
+          <!-- Challenge content will be injected here from challenge.html -->
+        </div>
+      </div>
+
+      <!-- Sidebar Column (4/12) -->
+      <div class="col-span-12 lg:col-span-4 flex flex-col gap-8 sticky top-6">
+        <!-- Progress Card -->
+        <div class="bg-card/40 border border-white/5 rounded-3xl p-6 backdrop-blur-xl shadow-xl">
+          <h3 class="text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em] mb-6">Progress</h3>
+
+          <div id="solve-graph" class="h-48 w-full">
+            <!-- ECharts container -->
+            <div class="flex items-center justify-center h-full text-muted-foreground/30 italic text-xs">
+              Graph loading...
+            </div>
+          </div>
+
+          <div class="flex justify-center gap-6 mt-4">
+            <div class="flex items-center gap-2">
+              <div class="w-2 h-2 rounded-full bg-muted-foreground/40"></div>
+              <span class="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Attempts</span>
+            </div>
+            <div class="flex items-center gap-2">
+              <div class="w-2 h-2 rounded-full bg-emerald-500"></div>
+              <span class="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Solves</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Recent Solvers Card -->
+        <div class="bg-card/40 border border-white/5 rounded-3xl p-6 backdrop-blur-xl shadow-xl">
+          <h3 class="text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em] mb-6">Recent Solvers</h3>
+
+          <div class="flex flex-col gap-5">
+            <template x-for="solve in (recentSolves || []).slice(0, 5)" :key="solve.id">
+              <div class="flex items-center justify-between group/user transition-all">
+                <div class="flex items-center gap-3">
+                  <div
+                    class="w-9 h-9 rounded-xl bg-white/5 border border-white/5 flex items-center justify-center text-[11px] font-black text-white group-hover/user:bg-indigo-500/20 group-hover/user:border-indigo-500/20 transition-all uppercase"
+                    x-text="solve.name ? solve.name[0] : '?'">
+                  </div>
+                  <span class="text-xs font-black text-white/80 group-hover/user:text-white transition-colors"
+                    x-text="solve.name"></span>
+                </div>
+                <span class="text-[10px] font-bold text-muted-foreground/40" x-text="solve.date"></span>
+              </div>
+            </template>
+
+            <div x-show="!recentSolves || recentSolves.length === 0"
+              class="text-center py-4 text-[10px] font-bold text-muted-foreground/40 uppercase tracking-widest">
+              No solvers yet
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
 </div>
 {% endblock %}
 

@@ -5,55 +5,102 @@ import dayjs from "dayjs";
 
 export function getOption(mode, places, optionMerge) {
   let option = {
-    title: {
-      left: "center",
-      text: "Top 10 " + (mode === "teams" ? "Teams" : "Users"),
-    },
+    backgroundColor: "transparent",
     tooltip: {
       trigger: "axis",
+      backgroundColor: "rgba(10, 10, 15, 0.9)",
+      borderColor: "rgba(255, 255, 255, 0.1)",
+      textStyle: {
+        color: "#fff",
+        fontFamily: "Inter, sans-serif",
+      },
       axisPointer: {
         type: "cross",
+        lineStyle: {
+          color: "rgba(255, 255, 255, 0.2)",
+          width: 1,
+        },
       },
     },
     legend: {
       type: "scroll",
       orient: "horizontal",
       align: "left",
-      bottom: 35,
+      bottom: 0,
+      icon: "circle",
+      textStyle: {
+        color: "rgba(255, 255, 255, 0.8)",
+        fontFamily: "Inter, sans-serif",
+        fontSize: 12,
+      },
+      itemGap: 24,
+      itemWidth: 10,
+      itemHeight: 10,
       data: [],
     },
     toolbox: {
+      show: true,
       feature: {
-        dataZoom: {
-          yAxisIndex: "none",
+        saveAsImage: {
+          title: "Save",
+          iconStyle: {
+            borderColor: "rgba(255, 255, 255, 0.5)",
+          },
         },
-        saveAsImage: {},
       },
+      right: 20,
+      top: 0,
     },
     grid: {
+      left: "3%",
+      right: "5%",
+      bottom: "12%",
+      top: "8%",
       containLabel: true,
     },
     xAxis: [
       {
         type: "time",
         boundaryGap: false,
-        data: [],
+        axisLine: {
+          show: false,
+        },
+        splitLine: {
+          show: true,
+          lineStyle: {
+            color: "rgba(255, 255, 255, 0.05)",
+            type: "dashed",
+          },
+        },
+        axisLabel: {
+          color: "rgba(255, 255, 255, 0.4)",
+          fontSize: 11,
+          margin: 15,
+        },
+        axisTick: {
+          show: false,
+        }
       },
     ],
     yAxis: [
       {
         type: "value",
-      },
-    ],
-    dataZoom: [
-      {
-        id: "dataZoomX",
-        type: "slider",
-        xAxisIndex: [0],
-        filterMode: "filter",
-        height: 20,
-        top: 35,
-        fillerColor: "rgba(233, 236, 241, 0.4)",
+        axisLine: {
+          show: false,
+        },
+        splitLine: {
+          show: true,
+          lineStyle: {
+            color: "rgba(255, 255, 255, 0.05)",
+            type: "dashed",
+          },
+        },
+        axisLabel: {
+          color: "rgba(255, 255, 255, 0.4)",
+          fontSize: 11,
+          formatter: (value) => value.toLocaleString(),
+          margin: 15,
+        },
       },
     ],
     series: [],
@@ -79,15 +126,21 @@ export function getOption(mode, places, optionMerge) {
     const data = {
       name: places[teams[i]]["name"],
       type: "line",
-      label: {
-        normal: {
-          position: "top",
-        },
+      smooth: false,
+      symbol: "circle",
+      symbolSize: 6,
+      showSymbol: true,
+      lineStyle: {
+        width: 1.5,
+        shadowBlur: 4,
+        shadowColor: colorHash(places[teams[i]]["name"] + places[teams[i]]["id"]),
+      },
+      areaStyle: {
+        opacity: 0.1,
+        color: colorHash(places[teams[i]]["name"] + places[teams[i]]["id"]),
       },
       itemStyle: {
-        normal: {
-          color: colorHash(places[teams[i]]["name"] + places[teams[i]]["id"]),
-        },
+        color: colorHash(places[teams[i]]["name"] + places[teams[i]]["id"]),
       },
       data: scores,
     };

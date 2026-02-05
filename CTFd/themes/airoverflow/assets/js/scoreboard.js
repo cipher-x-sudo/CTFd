@@ -37,10 +37,25 @@ Alpine.data("ScoreboardList", () => ({
   standings: [],
   brackets: [],
   activeBracket: null,
+  search: "",
 
   async update() {
     this.brackets = await CTFd.pages.scoreboard.getBrackets(CTFd.config.userMode);
-    this.standings = await CTFd.pages.scoreboard.getScoreboard();
+    this.standings = (await CTFd.pages.scoreboard.getScoreboard()).map(
+      (s, i) => ({ ...s, rank: i + 1 })
+    );
+  },
+
+  get filteredStandings() {
+    return this.standings.filter(s => {
+      const matchBracket = this.activeBracket
+        ? s.bracket_id == this.activeBracket
+        : true;
+      const matchSearch = s.name
+        .toLowerCase()
+        .includes(this.search.toLowerCase());
+      return matchBracket && matchSearch;
+    });
   },
 
   async init() {
