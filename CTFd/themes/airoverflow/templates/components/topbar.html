@@ -1,20 +1,32 @@
 <header
-    class="flex flex-wrap justify-end py-3 px-6 mb-0 border-b border-border bg-background/80 backdrop-blur-md sticky top-0 z-30">
-    <div class="flex items-center gap-6">
-        <div class="flex items-center gap-4 border-r border-border pr-6 mr-2">
+    class="w-full h-14 shrink-0 flex flex-wrap items-center justify-end py-0 px-6 border-b border-border bg-background/80 backdrop-blur-md sticky top-0 z-50">
+    <div class="flex items-center justify-between w-full h-full px-4">
+        <!-- Branding -->
+        <a href="/" class="flex items-center gap-3 no-underline group shrink-0">
+            <div class="p-1.5 bg-primary/10 rounded-lg group-hover:bg-primary/20 transition-colors">
+                <i class="fas fa-layer-group text-primary text-lg"></i>
+            </div>
+            <span
+                class="self-center text-white font-display tracking-widest text-lg font-bold uppercase group-hover:text-primary transition-colors">
+                {{ Configs.ctf_name }}
+            </span>
+        </a>
+
+        <div class="flex items-center gap-4">
             <!-- Theme Toggle -->
             <button class="text-muted-foreground hover:text-white transition-colors p-1" aria-label="Toggle Theme">
                 <i class="fas fa-moon w-5 h-5"></i>
             </button>
 
             <!-- Notifications -->
-            <button class="text-muted-foreground hover:text-white transition-colors relative p-1"
+            <a href="{{ url_for('views.notifications') }}"
+                class="text-muted-foreground hover:text-white transition-colors relative p-1"
                 aria-label="Notifications">
                 <i class="fas fa-bell w-5 h-5"></i>
                 <!-- Notification Badge -->
-                <span
-                    class="absolute top-0 right-0 block h-2 w-2 rounded-full bg-primary ring-2 ring-background transform translate-x-1/2 -translate-y-1/2"></span>
-            </button>
+                <span x-data x-show="$store.unread_count > 0"
+                    class="absolute top-0 right-0 block h-2 w-2 rounded-full bg-red-500 ring-2 ring-background transform translate-x-1/2 -translate-y-1/2"></span>
+            </a>
         </div>
 
         {% if User.id %}

@@ -1,19 +1,9 @@
 <aside
-    class="fixed top-0 left-0 z-40 w-64 h-screen transition-transform -translate-x-full sm:translate-x-0 bg-sidebar border-r border-sidebar-border flex flex-col"
+    class="fixed top-0 left-0 bottom-0 z-40 w-64 transition-transform -translate-x-full sm:translate-x-0 bg-sidebar border-r border-sidebar-border flex flex-col"
     aria-label="Sidebar">
 
-    <!-- Branding -->
-    <div class="px-6 py-6 transition-all duration-300">
-        <a href="/" class="flex items-center no-underline gap-3 group">
-            <div class="p-2 bg-primary/10 rounded-lg group-hover:bg-primary/20 transition-colors">
-                <i class="fas fa-layer-group text-primary text-xl"></i>
-            </div>
-            <span
-                class="self-center text-white font-display tracking-widest text-xl font-bold uppercase group-hover:text-primary transition-colors">
-                {{ Configs.ctf_name }}
-            </span>
-        </a>
-    </div>
+    <!-- Header Spacer -->
+    <div class="h-14 shrink-0"></div>
 
     <div class="h-full px-3 py-2 overflow-y-auto bg-sidebar flex flex-col custom-scrollbar">
 
@@ -204,7 +194,14 @@
         </ul>
         {% endif %}
 
-        <div class="mt-6 px-3">
+        <div class="mt-6 px-3 space-y-1.5">
+            <div class="flex items-center gap-2 text-[10px] text-muted-foreground">
+                <span class="inline-block w-2 h-2 rounded-full bg-green-500 shrink-0" aria-hidden="true"></span>
+                <span>Online</span>
+            </div>
+            <div class="text-[10px] text-muted-foreground opacity-80">
+                A product of {{ Configs.ctf_name }}
+            </div>
             <div class="text-[10px] text-muted-foreground opacity-60">
                 © 2026 {{ Configs.ctf_name }}
             </div>

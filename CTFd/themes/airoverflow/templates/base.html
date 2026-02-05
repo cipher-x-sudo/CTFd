@@ -21,14 +21,14 @@
       'csrfNonce': "{{ Session.nonce }}",
       'userMode': "{{ Configs.user_mode }}",
       'userId': {{ Session.id }},
-    'userName': {{ User.name | tojson }},
-    'userEmail': {{ User.email | tojson }},
-    'userVerified': {{ User.verified | tojson }},
-    'teamId': {{ Team.id | tojson }},
-    'teamName': {{ Team.name | tojson }},
-    'start': {{ Configs.start | tojson }},
-    'end': {{ Configs.end | tojson }},
-    'themeSettings': {{ Configs.theme_settings | tojson }},
+    'userName': { { User.name | tojson } },
+    'userEmail': { { User.email | tojson } },
+    'userVerified': { { User.verified | tojson } },
+    'teamId': { { Team.id | tojson } },
+    'teamName': { { Team.name | tojson } },
+    'start': { { Configs.start | tojson } },
+    'end': { { Configs.end | tojson } },
+    'themeSettings': { { Configs.theme_settings | tojson } },
     'eventSounds': [
       "/themes/core/static/sounds/notification.webm",
       "/themes/core/static/sounds/notification.mp3",
@@ -45,20 +45,21 @@
     class="fixed top-0 left-0 right-0 h-[300px] bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-primary/10 via-background/0 to-transparent -z-10 pointer-events-none">
   </div>
 
+  {% set topbar_extra %}{% block topbar_extra %}{% endblock %}{% endset %}
+  {% include "components/topbar.html" with context %}
   {% include "components/sidebar.html" %}
 
-  <div class="ml-64 min-h-screen flex flex-col transition-[margin] duration-200 ease-in-out">
-    {% include "components/topbar.html" %}
-
-    <main role="main" class="flex-grow p-6">
-      {% include "components/notifications.html" %}
-      {% block content %}
-      {% endblock %}
-    </main>
-
-    <footer class="mt-auto py-6 text-center text-sm text-muted-foreground">
-      <small>{% trans %}Powered by CTFd{% endtrans %}</small>
-    </footer>
+  <div class="pt-14 flex flex-col min-h-screen">
+    <div class="ml-64 flex-1 flex flex-col transition-[margin] duration-200 ease-in-out">
+      <main role="main" class="flex-grow p-6">
+        {% include "components/notifications.html" %}
+        {% block content %}
+        {% endblock %}
+      </main>
+      <footer class="mt-auto py-6 text-center text-sm text-muted-foreground">
+        <small>{% trans %}Powered by CTFd{% endtrans %}</small>
+      </footer>
+    </div>
   </div>
 
   {% include "components/snackbar.html" %}
