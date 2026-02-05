@@ -52,6 +52,7 @@ from CTFd.utils.config.visibility import (
     scores_visible,
 )
 from CTFd.utils.dates import ctf_ended, ctf_paused, ctftime, isoformat
+from CTFd.utils.modes import get_model
 from CTFd.utils.decorators import (
     admins_only,
     authed_only,
@@ -1000,6 +1001,39 @@ class ChallengeSolves(Resource):
         response = get_solves_for_challenge_id(challenge_id=challenge_id, freeze=freeze)
 
         return {"success": True, "data": response}
+
+
+@challenges_namespace.route("/<challenge_id>/statistics")
+class ChallengeStatistics(Resource):
+    @check_challenge_visibility
+    @check_account_visibility
+    @check_score_visibility
+    @during_ctf_time_only
+    @require_verified_emails
+    def get(self, challenge_id):
+        challenge = Challenges.query.filter_by(id=challenge_id).first_or_404()
+
+        if challenge.state == "hidden" and is_admin() is False:
+            abort(404)
+
+        Model = get_model()
+
+        # Solve count (reuse get_solve_counts_for_challenges, respects freeze)
+        solve_counts = get_solve_counts_for_challenges(challenge_id=challenge_id)
+        solve = solve_counts.get(challenge_id, 0)
+
+        # Wrong/fail count (exclude banned/hidden accounts)
+        wrong = (
+            Fails.query.join(Model, Fails.account_id == Model.id)
+            .filter(
+                Fails.challenge_id == challenge_id,
+                Model.banned == False,
+                Model.hidden == False,
+            )
+            .count()
+        )
+
+        return {"success": True, "data": {"solve": solve, "wrong": wrong}}
 
 
 @challenges_namespace.route("/<challenge_id>/files")
