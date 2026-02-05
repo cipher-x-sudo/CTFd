@@ -1,0 +1,149 @@
+@use "bootstrap/scss/bootstrap" as * with ($info: #5c728f,
+  // AirOverflow Palette - Replaced with CSS Vars where possible or kept for bootstrap compat
+  $body-bg: #070609,
+  $body-color: #F5F4F5,
+  $primary: #7C42F0,
+  $secondary: #6c757d,
+  $light: #F5F4F5,
+  $dark: #0E0B13,
+  $card-bg: #0E0B13,
+  $card-border-color: #1D1825,
+  $font-family-base: ("Inter", sans-serif),
+  $font-family-code: ("JetBrains Mono", monospace));
+
+@use "includes/components/table";
+@use "includes/components/jumbotron";
+@use "includes/components/challenge";
+@use "includes/components/sticky-footer";
+@use "includes/components/graphs";
+
+@use "includes/utils/fonts";
+@use "includes/utils/opacity";
+@use "includes/utils/min-height";
+@use "includes/utils/cursors";
+@use "includes/utils/lolight";
+
+@use "includes/icons/award-icons";
+@use "includes/icons/flag-icons";
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: 260 20% 3%;
+  --foreground: 270 5% 96%;
+  --card: 260 25% 6%;
+  --card-foreground: 270 5% 96%;
+  --popover: 260 25% 6%;
+  --popover-foreground: 270 5% 96%;
+  --primary: 260 85% 60%;
+  --primary-foreground: 260 20% 3%;
+  --primary-glow: 270 90% 70%;
+  --secondary: 210 85% 65%;
+  --secondary-foreground: 260 20% 3%;
+  --muted: 260 15% 8%;
+  --muted-foreground: 260 5% 70%;
+  --accent: 190 90% 65%;
+  --accent-foreground: 260 20% 3%;
+  --destructive: 0 85% 60%;
+  --destructive-foreground: 270 5% 96%;
+  --border: 260 20% 12%;
+  --input: 260 15% 8%;
+  --ring: 260 85% 60%;
+  --radius: .75rem;
+
+  --sidebar-background: 260 20% 3%;
+  --sidebar-foreground: 240 5.3% 26.1%;
+  --sidebar-primary: 240 5.9% 10%;
+  --sidebar-primary-foreground: 0 0% 98%;
+  --sidebar-accent: 260 20% 12%;
+  --sidebar-accent-foreground: 240 5.9% 10%;
+  --sidebar-border: 260 20% 12%;
+  --sidebar-ring: 217.2 91.2% 59.8%;
+}
+
+h1,
+h2 {
+  font-weight: 500;
+  letter-spacing: 2px;
+}
+
+a {
+  text-decoration: none !important;
+}
+
+blockquote {
+  border-left: 4px solid $secondary;
+  padding-left: 15px;
+}
+
+input,
+select {
+  padding: 0.6rem !important;
+  height: auto !important;
+}
+
+.fa-spin.spinner {
+  text-align: center;
+  opacity: 0.5;
+}
+
+.badge-notification {
+  vertical-align: top;
+  margin-left: -1.5em;
+  font-size: 50%;
+}
+
+.form-select {
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 4 5'%3e%3cpath fill='%23343a40' d='M2 0L0 2h4zm0 5L0 3h4z'/%3e%3c/svg%3e");
+  background-size: 8px 10px;
+}
+
+// AirOverflow Custom Styles
+.bg-glow-top {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 300px;
+  background: radial-gradient(circle at top center, rgba(124, 66, 240, 0.15) 0%, rgba(7, 6, 9, 0) 70%);
+  z-index: -1;
+  pointer-events: none;
+}
+
+body {
+  // background-color: $body-bg;
+  // background-image: radial-gradient(circle at 50% 0%, #151025 0%, #070609 50%);
+  // background-attachment: fixed;
+}
+
+.card {
+  border: 1px solid hsl(var(--border));
+  border-radius: 10px;
+  background-color: hsl(var(--card));
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
+.btn-primary {
+  background-color: hsl(var(--primary));
+  border-color: hsl(var(--primary));
+
+  &:hover {
+    background-color: hsl(var(--primary) / 0.9);
+    border-color: hsl(var(--primary) / 0.9);
+    box-shadow: 0 0 15px hsl(var(--primary) / 0.4);
+  }
+}
+
+.nav-link {
+  color: $secondary;
+  transition: all 0.2s ease;
+
+  &:hover,
+  &.active {
+    color: hsl(var(--primary));
+    background-color: hsl(var(--primary) / 0.1);
+    border-radius: 8px;
+  }
+}

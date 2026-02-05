@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <title>{{ title or Configs.ctf_name }}</title>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="shortcut icon" href="{{ Configs.ctf_small_icon }}" type="image/x-icon">
+
+  {{ meta | safe }}
+
+  {% block stylesheets %}
+  {{ Assets.css("assets/scss/main.scss") }}
+  {% endblock %}
+
+  {{ Plugins.styles }}
+
+  <script type="text/javascript">
+    window.init = {
+      'urlRoot': "{{ request.script_root }}",
+      'csrfNonce': "{{ Session.nonce }}",
+      'userMode': "{{ Configs.user_mode }}",
+      'userId': {{ Session.id }},
+    'userName': {{ User.name | tojson }},
+    'userEmail': {{ User.email | tojson }},
+    'userVerified': {{ User.verified | tojson }},
+    'teamId': {{ Team.id | tojson }},
+    'teamName': {{ Team.name | tojson }},
+    'start': {{ Configs.start | tojson }},
+    'end': {{ Configs.end | tojson }},
+    'themeSettings': {{ Configs.theme_settings | tojson }},
+    'eventSounds': [
+      "/themes/core/static/sounds/notification.webm",
+      "/themes/core/static/sounds/notification.mp3",
+    ],
+    }
+  </script>
+
+  {{ Configs.theme_header }}
+</head>
+
+<body
+  class="bg-background text-foreground font-sans antialiased selection:bg-primary/30 selection:text-primary-foreground">
+  <div
+    class="fixed top-0 left-0 right-0 h-[300px] bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-primary/10 via-background/0 to-transparent -z-10 pointer-events-none">
+  </div>
+
+  {% include "components/sidebar.html" %}
+
+  <div class="ml-64 min-h-screen flex flex-col transition-[margin] duration-200 ease-in-out">
+    {% include "components/topbar.html" %}
+
+    <main role="main" class="flex-grow p-6">
+      {% include "components/notifications.html" %}
+      {% block content %}
+      {% endblock %}
+    </main>
+
+    <footer class="mt-auto py-6 text-center text-sm text-muted-foreground">
+      <small>{% trans %}Powered by CTFd{% endtrans %}</small>
+    </footer>
+  </div>
+
+  {% include "components/snackbar.html" %}
+
+
+  {% block scripts %}
+  {{ Assets.js("assets/js/page.js") }}
+  {% endblock %}
+
+  {{ Assets.js("assets/js/color_mode_switcher.js", type=None) }}
+  {{ Plugins.scripts }}
+
+  {{ Configs.theme_footer }}
+</body>
+
+</html>

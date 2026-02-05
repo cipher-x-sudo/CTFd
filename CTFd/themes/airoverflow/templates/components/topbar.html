@@ -1,0 +1,64 @@
+<header
+    class="flex flex-wrap justify-end py-3 px-6 mb-0 border-b border-border bg-background/80 backdrop-blur-md sticky top-0 z-30">
+    <div class="flex items-center gap-6">
+        <div class="flex items-center gap-4 border-r border-border pr-6 mr-2">
+            <!-- Theme Toggle -->
+            <button class="text-muted-foreground hover:text-white transition-colors p-1" aria-label="Toggle Theme">
+                <i class="fas fa-moon w-5 h-5"></i>
+            </button>
+
+            <!-- Notifications -->
+            <button class="text-muted-foreground hover:text-white transition-colors relative p-1"
+                aria-label="Notifications">
+                <i class="fas fa-bell w-5 h-5"></i>
+                <!-- Notification Badge -->
+                <span
+                    class="absolute top-0 right-0 block h-2 w-2 rounded-full bg-primary ring-2 ring-background transform translate-x-1/2 -translate-y-1/2"></span>
+            </button>
+        </div>
+
+        {% if User.id %}
+        <div class="flex items-center gap-3">
+            <div class="text-right hidden sm:block">
+                <span class="block text-white font-bold text-sm leading-tight">{{ User.name }}</span>
+                <span class="text-muted-foreground text-[10px] uppercase tracking-wider font-bold">
+                    {% if Team and Team.name %}
+                    {{ Team.name }}
+                    {% else %}
+                    Hacker
+                    {% endif %}
+                </span>
+            </div>
+            <div class="dropdown">
+                <a href="#" class="block link-dark text-decoration-none dropdown-toggle no-caret group"
+                    id="dropdownUser1" data-bs-toggle="dropdown" aria-expanded="false">
+                    <img id="user-gravatar" src="https://www.gravatar.com/avatar/?d=retro&s=32" alt="Avatar" width="36"
+                        height="36" class="rounded-full ring-2 ring-border group-hover:ring-primary transition-all">
+                </a>
+                <ul class="dropdown-menu dropdown-menu-end shadow-lg rounded-xl mt-2 border-border bg-card text-foreground p-2"
+                    aria-labelledby="dropdownUser1" style="min-width: 200px;">
+                    <li class="px-2 py-1">
+                        <span class="text-xs text-muted-foreground uppercase font-bold tracking-wider">Account</span>
+                    </li>
+                    <li><a class="dropdown-item rounded-lg hover:bg-white/5 hover:text-white transition-colors cursor-pointer"
+                            href="{{ url_for('views.settings') }}">Settings</a></li>
+                    <li><a class="dropdown-item rounded-lg hover:bg-white/5 hover:text-white transition-colors cursor-pointer"
+                            href="{{ url_for('users.private') }}">Profile</a></li>
+                    <li class="my-1">
+                        <hr class="dropdown-divider border-border">
+                    </li>
+                    <li><a class="dropdown-item rounded-lg text-destructive hover:bg-destructive/10 hover:text-destructive transition-colors cursor-pointer"
+                            href="{{ url_for('auth.logout') }}">Sign out</a></li>
+                </ul>
+            </div>
+        </div>
+        {% else %}
+        <div class="flex gap-2">
+            <a href="{{ url_for('auth.login') }}"
+                class="px-4 py-2 text-sm font-medium text-white transition-colors hover:text-primary">Login</a>
+            <a href="{{ url_for('auth.register') }}"
+                class="px-4 py-2 text-sm font-medium text-white bg-primary rounded-lg hover:bg-primary/90 transition-all shadow-lg shadow-primary/20">Sign-up</a>
+        </div>
+        {% endif %}
+    </div>
+</header>

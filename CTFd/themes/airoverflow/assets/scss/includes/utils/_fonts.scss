@@ -1,0 +1,31 @@
+@use "~/@fontsource/inter/scss/mixins" as Inter;
+@use "~/@fontsource/jetbrains-mono/scss/mixins" as JetBrainsMono;
+
+// Include Inter weights
+@include Inter.faces($directory: "../webfonts", $weights: (400, 500, 700));
+
+// Include JetBrains Mono weights
+@include JetBrainsMono.faces($directory: "../webfonts", $weights: (400, 500));
+
+
+$fa-font-path: "../webfonts";
+@import "~/@fortawesome/fontawesome-free/scss/fontawesome.scss";
+@import "~/@fortawesome/fontawesome-free/scss/solid.scss";
+@import "~/@fortawesome/fontawesome-free/scss/brands.scss";
+
+html,
+body,
+.container {
+  font-family: "Inter", sans-serif;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+.navbar-brand,
+.jumbotron .container {
+  font-family: "JetBrains Mono", monospace;
+}
