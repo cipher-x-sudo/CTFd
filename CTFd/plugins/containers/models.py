@@ -19,11 +19,6 @@ class ContainerChallengeModel(Challenges):
     ssh_username = db.Column(db.Text, nullable=True)
     ssh_password = db.Column(db.Text, nullable=True)
 
-    # Dynamic challenge properties
-    initial = db.Column(db.Integer, default=0)
-    minimum = db.Column(db.Integer, default=0)
-    decay = db.Column(db.Integer, default=0)
-
     def __init__(self, *args, **kwargs):
         super(ContainerChallengeModel, self).__init__(**kwargs)
         self.value = kwargs["initial"]
