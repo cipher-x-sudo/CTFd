@@ -2,6 +2,9 @@ services:
   ctfd:
     build: .
     restart: always
+    # Allow CTFd Containers plugin to spawn Docker containers (adjust group ID if needed on your host)
+    group_add:
+      - "999"  # docker group GID - run `getent group docker` on host to verify
     ports:
       - "8000:8000"
     environment:
@@ -17,6 +20,7 @@ services:
       - .data/CTFd/logs:/var/log/CTFd
       - .data/CTFd/uploads:/var/uploads
       - .:/opt/CTFd:ro
+      - /var/run/docker.sock:/var/run/docker.sock
     depends_on:
       - db
     networks:
