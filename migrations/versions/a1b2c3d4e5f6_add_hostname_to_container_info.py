@@ -1,7 +1,7 @@
 """Add hostname column to container_info_model for Railway backend
 
 Revision ID: a1b2c3d4e5f6
-Revises: f73a96c97449
+Revises: 67ebab6de598
 Create Date: 2025-02-06 12:00:00.000000
 
 """
@@ -11,7 +11,7 @@ import sqlalchemy as sa
 
 # revision identifiers, used by Alembic.
 revision = "a1b2c3d4e5f6"
-down_revision = "f73a96c97449"
+down_revision = "67ebab6de598"
 branch_labels = None
 depends_on = None
 
