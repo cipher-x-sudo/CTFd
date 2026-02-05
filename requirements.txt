@@ -167,8 +167,6 @@ pytz==2025.2
     # via
     #   flask-babel
     #   flask-restx
-pywin32==311
-    # via docker
 redis==4.5.5
     # via -r requirements.in
 referencing==0.36.2
