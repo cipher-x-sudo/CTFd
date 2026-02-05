@@ -321,3 +321,8 @@ function container_stop(challenge_id) {
     });
 }
 
+// Expose to global so inline onclick handlers in view.html can call them
+window.view_container_info = view_container_info;
+window.container_request = container_request;
+window.container_renew = container_renew;
+window.container_stop = container_stop;
