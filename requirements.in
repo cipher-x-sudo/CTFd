@@ -23,6 +23,9 @@ flask-marshmallow==0.10.1
 marshmallow-sqlalchemy==0.17.0
 boto3==1.35.27
 marshmallow==2.20.2
+docker>=6.0.0
+paramiko>=3.0.0
+APScheduler>=3.10.0
 pydantic==1.6.2
 WTForms==2.3.1
 python-geoacumen-city==2023.4.15
