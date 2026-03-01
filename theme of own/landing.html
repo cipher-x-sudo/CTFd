@@ -1,0 +1,685 @@
+<style>
+    @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap');
+
+    :root {
+        --cx-red: #cc1f1f;
+        --cx-red-bright: #e53535;
+        --cx-dark: #0d0d12;
+        --cx-panel: #141420;
+        --cx-card: #1a1a28;
+        --cx-border: rgba(204, 31, 31, 0.3);
+        --cx-text: #e0dde8;
+        --cx-muted: #6b6880;
+        --cx-mono: 'Share Tech Mono', 'Courier New', monospace;
+    }
+
+    #cx-landing {
+        position: relative;
+        min-height: 100vh;
+        background: var(--cx-dark);
+        color: var(--cx-text);
+        font-family: var(--cx-mono);
+        overflow-x: hidden;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding: 64px 24px 48px;
+        gap: 56px;
+    }
+
+    /* scanlines */
+    #cx-landing::after {
+        content: '';
+        position: fixed;
+        inset: 0;
+        pointer-events: none;
+        z-index: 100;
+        background: repeating-linear-gradient(0deg, transparent, transparent 2px,
+                rgba(0, 0, 0, 0.07) 2px, rgba(0, 0, 0, 0.07) 4px);
+    }
+
+    /* grid bg */
+    #cx-grid {
+        position: fixed;
+        inset: 0;
+        z-index: 0;
+        pointer-events: none;
+        background-image:
+            linear-gradient(rgba(204, 31, 31, 0.04) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(204, 31, 31, 0.04) 1px, transparent 1px);
+        background-size: 48px 48px;
+    }
+
+    /* particle canvas */
+    #cx-canvas {
+        position: fixed;
+        inset: 0;
+        z-index: 0;
+        pointer-events: none;
+    }
+
+    /* all sections sit above bg layers */
+    #cx-landing>* {
+        position: relative;
+        z-index: 1;
+    }
+
+    /* ── Hero ── */
+    #cx-hero {
+        text-align: center;
+        max-width: 780px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 20px;
+    }
+
+    #cx-pre-label {
+        font-size: 0.75rem;
+        color: var(--cx-red-bright);
+        letter-spacing: 0.25em;
+        text-transform: uppercase;
+        background: rgba(204, 31, 31, 0.1);
+        border: 1px solid var(--cx-border);
+        padding: 6px 18px;
+        border-radius: 2px;
+    }
+
+    /* glitch */
+    #cx-glitch {
+        font-size: clamp(3rem, 10vw, 6.5rem);
+        font-weight: 900;
+        color: #fff;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        position: relative;
+        display: inline-block;
+        line-height: 1;
+    }
+
+    #cx-glitch::before,
+    #cx-glitch::after {
+        content: attr(data-text);
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        overflow: hidden;
+    }
+
+    #cx-glitch::before {
+        color: var(--cx-red-bright);
+        clip-path: polygon(0 0, 100% 0, 100% 40%, 0 40%);
+        animation: cx-glitch1 5s infinite linear;
+        opacity: 0;
+    }
+
+    #cx-glitch::after {
+        color: #3bb5ff;
+        clip-path: polygon(0 60%, 100% 60%, 100% 100%, 0 100%);
+        animation: cx-glitch2 5s infinite linear;
+        opacity: 0;
+    }
+
+    @keyframes cx-glitch1 {
+
+        0%,
+        89%,
+        100% {
+            opacity: 0;
+            transform: none;
+        }
+
+        90% {
+            opacity: .8;
+            transform: translate(-3px, 1px) skewX(-2deg);
+        }
+
+        92% {
+            opacity: .8;
+            transform: translate(3px, -1px) skewX(2deg);
+        }
+
+        94% {
+            opacity: 0;
+            transform: none;
+        }
+    }
+
+    @keyframes cx-glitch2 {
+
+        0%,
+        84%,
+        100% {
+            opacity: 0;
+            transform: none;
+        }
+
+        85% {
+            opacity: .6;
+            transform: translate(3px, 2px);
+        }
+
+        87% {
+            opacity: .6;
+            transform: translate(-3px, -2px);
+        }
+
+        89% {
+            opacity: 0;
+            transform: none;
+        }
+    }
+
+    #cx-subtitle {
+        font-family: 'Inter', system-ui, sans-serif;
+        font-size: 1rem;
+        color: var(--cx-muted);
+        max-width: 540px;
+        line-height: 1.8;
+    }
+
+    #cx-subtitle strong {
+        color: var(--cx-text);
+    }
+
+    #cx-subtitle .cx-accent {
+        color: var(--cx-red-bright);
+    }
+
+    /* ── Terminal ── */
+    #cx-terminal {
+        width: 100%;
+        max-width: 580px;
+        background: #0a0a10;
+        border: 1px solid var(--cx-border);
+        border-radius: 6px;
+        overflow: hidden;
+        box-shadow: 0 0 40px rgba(204, 31, 31, 0.12);
+    }
+
+    #cx-term-bar {
+        background: #111118;
+        padding: 10px 16px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    }
+
+    .cx-dot {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+    }
+
+    .cx-dot:nth-child(1) {
+        background: #ff5f56;
+    }
+
+    .cx-dot:nth-child(2) {
+        background: #ffbd2e;
+    }
+
+    .cx-dot:nth-child(3) {
+        background: #27c93f;
+    }
+
+    #cx-term-title {
+        font-size: 0.7rem;
+        color: var(--cx-muted);
+        margin-left: auto;
+    }
+
+    #cx-term-body {
+        padding: 18px 24px;
+        font-size: 0.82rem;
+        line-height: 2;
+    }
+
+    .cx-tline {
+        display: flex;
+        gap: 10px;
+    }
+
+    .cx-prompt {
+        color: var(--cx-red-bright);
+        user-select: none;
+        flex-shrink: 0;
+    }
+
+    .cx-out {
+        display: block;
+        margin-left: 20px;
+    }
+
+    .cx-out.ok {
+        color: #5a8a6a;
+    }
+
+    .cx-out.inf {
+        color: #4a9ab8;
+    }
+
+    .cx-out.wrn {
+        color: #c8953a;
+    }
+
+    .cx-out.hl {
+        color: var(--cx-red-bright);
+    }
+
+    .cx-cursor {
+        display: inline-block;
+        width: 8px;
+        height: 1em;
+        background: var(--cx-red-bright);
+        animation: cx-blink .8s step-end infinite;
+        vertical-align: text-bottom;
+    }
+
+    @keyframes cx-blink {
+
+        0%,
+        100% {
+            opacity: 1
+        }
+
+        50% {
+            opacity: 0
+        }
+    }
+
+    /* ── CTA ── */
+    #cx-cta {
+        display: flex;
+        gap: 14px;
+        flex-wrap: wrap;
+        justify-content: center;
+    }
+
+    .cx-btn {
+        font-family: var(--cx-mono);
+        font-size: 0.85rem;
+        padding: 13px 30px;
+        border-radius: 4px;
+        border: none;
+        cursor: pointer;
+        letter-spacing: 0.1em;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        transition: all 0.2s;
+        text-transform: uppercase;
+    }
+
+    .cx-btn-primary {
+        background: var(--cx-red);
+        color: #fff;
+        box-shadow: 0 0 24px rgba(204, 31, 31, 0.4);
+    }
+
+    .cx-btn-primary:hover {
+        background: var(--cx-red-bright);
+        box-shadow: 0 0 36px rgba(229, 53, 53, 0.6);
+        transform: translateY(-2px);
+        color: #fff;
+    }
+
+    .cx-btn-outline {
+        background: transparent;
+        color: var(--cx-text);
+        border: 1px solid var(--cx-border);
+    }
+
+    .cx-btn-outline:hover {
+        border-color: var(--cx-red-bright);
+        color: var(--cx-red-bright);
+        transform: translateY(-2px);
+    }
+
+    /* ── Countdown ── */
+    #cx-countdown-wrap {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 14px;
+    }
+
+    #cx-cd-label {
+        font-size: 0.72rem;
+        color: var(--cx-muted);
+        letter-spacing: 0.2em;
+        text-transform: uppercase;
+    }
+
+    #cx-cd-grid {
+        display: flex;
+        gap: 14px;
+        flex-wrap: wrap;
+        justify-content: center;
+    }
+
+    .cx-cd-box {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 6px;
+        background: var(--cx-card);
+        border: 1px solid var(--cx-border);
+        border-radius: 6px;
+        padding: 20px 26px;
+        min-width: 100px;
+        box-shadow: 0 0 20px rgba(204, 31, 31, 0.08);
+        position: relative;
+        overflow: hidden;
+    }
+
+    .cx-cd-box::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 2px;
+        background: linear-gradient(90deg, transparent, var(--cx-red), transparent);
+    }
+
+    .cx-cd-num {
+        font-size: 2.6rem;
+        font-weight: 700;
+        color: #fff;
+        line-height: 1;
+        text-shadow: 0 0 20px rgba(229, 53, 53, 0.4);
+        transition: transform 0.2s, color 0.2s;
+    }
+
+    .cx-cd-unit {
+        font-size: 0.62rem;
+        color: var(--cx-muted);
+        letter-spacing: 0.2em;
+        text-transform: uppercase;
+    }
+
+    #cx-cd-live {
+        font-size: 1.4rem;
+        color: var(--cx-red-bright);
+        text-shadow: 0 0 20px rgba(229, 53, 53, 0.5);
+        display: none;
+        letter-spacing: 0.1em;
+    }
+
+
+    /* ── Feature cards ── */
+    #cx-features {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+        gap: 14px;
+        width: 100%;
+        max-width: 800px;
+    }
+
+    .cx-feat {
+        background: var(--cx-card);
+        border: 1px solid rgba(255, 255, 255, 0.05);
+        border-radius: 6px;
+        padding: 22px;
+        transition: border-color 0.25s, transform 0.25s;
+    }
+
+    .cx-feat:hover {
+        border-color: var(--cx-border);
+        transform: translateY(-3px);
+    }
+
+    .cx-feat-icon {
+        font-size: 1.5rem;
+        margin-bottom: 10px;
+    }
+
+    .cx-feat-title {
+        font-size: 0.82rem;
+        color: var(--cx-red-bright);
+        margin-bottom: 6px;
+        letter-spacing: 0.05em;
+    }
+
+    .cx-feat-desc {
+        font-family: 'Inter', system-ui, sans-serif;
+        font-size: 0.78rem;
+        color: var(--cx-muted);
+        line-height: 1.6;
+    }
+
+    /* ── Footer line ── */
+    #cx-footer {
+        font-size: 0.7rem;
+        color: var(--cx-muted);
+        text-align: center;
+        border-top: 1px solid rgba(255, 255, 255, 0.05);
+        padding-top: 20px;
+        width: 100%;
+    }
+
+    #cx-footer span {
+        color: var(--cx-red-bright);
+    }
+</style>
+
+<!-- Background layers -->
+<canvas id="cx-canvas"></canvas>
+<div id="cx-grid"></div>
+
+<!-- Root -->
+<div id="cx-landing">
+
+    <!-- Hero -->
+    <div id="cx-hero">
+        <div id="cx-pre-label">// TRANSMISSION INCOMING</div>
+
+        <div id="cx-glitch" data-text="WE'RE BACK">WE'RE BACK</div>
+
+        <!-- Countdown -->
+        <div id="cx-countdown-wrap">
+            <div id="cx-cd-label">// TIME UNTIL LAUNCH</div>
+            <div id="cx-cd-grid">
+                <div class="cx-cd-box">
+                    <div class="cx-cd-num" id="cx-days">00</div>
+                    <div class="cx-cd-unit">Days</div>
+                </div>
+                <div class="cx-cd-box">
+                    <div class="cx-cd-num" id="cx-hours">00</div>
+                    <div class="cx-cd-unit">Hours</div>
+                </div>
+                <div class="cx-cd-box">
+                    <div class="cx-cd-num" id="cx-mins">00</div>
+                    <div class="cx-cd-unit">Mins</div>
+                </div>
+                <div class="cx-cd-box">
+                    <div class="cx-cd-num" id="cx-secs">00</div>
+                    <div class="cx-cd-unit">Secs</div>
+                </div>
+            </div>
+            <div id="cx-cd-live">⚡ CTF IS LIVE — HACK NOW</div>
+        </div>
+
+        <div id="cx-subtitle">
+            The shadows shift. The terminals wake. <strong>FUZZERS CTF 26'</strong> returns
+            with <span class="cx-accent">harder challenges</span>, deeper rabbit holes,
+            and more flags to hunt. You thought you were done?
+            <strong>The game has only just begun.</strong>
+        </div>
+
+        <!-- Terminal -->
+        <div id="cx-terminal">
+            <div id="cx-term-bar">
+                <div class="cx-dot"></div>
+                <div class="cx-dot"></div>
+                <div class="cx-dot"></div>
+                <span id="cx-term-title">sudofuzzers@ctf:~$</span>
+            </div>
+            <div id="cx-term-body">
+                <div class="cx-tline"><span class="cx-prompt">$</span><span>./initialize_ctf.sh --season 2</span></div>
+                <span class="cx-out inf">[INFO] Booting challenge infrastructure...</span>
+                <span class="cx-out ok">[OK] Web challenges loaded — 18 modules</span>
+                <span class="cx-out ok">[OK] Binary exploitation suite ready</span>
+                <span class="cx-out ok">[OK] Cryptography vault unlocked</span>
+                <span class="cx-out wrn">[WARN] Difficulty level: EXTREME</span>
+                <span class="cx-out hl">[!!] Hackers, the hunt begins soon.</span>
+                <div class="cx-tline" style="margin-top:4px"><span class="cx-prompt">$</span><span> <span
+                            class="cx-cursor"></span></span></div>
+            </div>
+        </div>
+
+        <div id="cx-cta">
+            <a href="/register" class="cx-btn cx-btn-primary">⚡ Register Now</a>
+            <a href="/challenges" class="cx-btn cx-btn-outline">View Challenges</a>
+        </div>
+    </div>
+
+
+
+    <!-- Category cards -->
+    <div id="cx-features">
+        <div class="cx-feat">
+            <div class="cx-feat-icon">🔐</div>
+            <div class="cx-feat-title">Cryptography</div>
+            <div class="cx-feat-desc">Break ciphers, crack hashes, and uncover secrets buried in mathematical noise.
+            </div>
+        </div>
+        <div class="cx-feat">
+            <div class="cx-feat-icon">💀</div>
+            <div class="cx-feat-title">Binary Exploitation</div>
+            <div class="cx-feat-desc">Buffer overflows, ROP chains, and shellcode. Speak the language of machines.</div>
+        </div>
+        <div class="cx-feat">
+            <div class="cx-feat-icon">🌐</div>
+            <div class="cx-feat-title">Web Hacking</div>
+            <div class="cx-feat-desc">SQL injections, XSS, SSRF, and beyond. Every endpoint is a potential door.</div>
+        </div>
+        <div class="cx-feat">
+            <div class="cx-feat-icon">🕵️</div>
+            <div class="cx-feat-title">OSINT &amp; Forensics</div>
+            <div class="cx-feat-desc">Hunt through digital breadcrumbs. The evidence is hiding in plain sight.</div>
+        </div>
+        <div class="cx-feat">
+            <div class="cx-feat-icon">⚙️</div>
+            <div class="cx-feat-title">Reverse Engineering</div>
+            <div class="cx-feat-desc">Disassemble. Decompile. Understand. What the developer hid, you will find.</div>
+        </div>
+        <div class="cx-feat">
+            <div class="cx-feat-icon">📡</div>
+            <div class="cx-feat-title">Misc &amp; Hardware</div>
+            <div class="cx-feat-desc">Signal analysis, steganography, and challenges that break the mold.</div>
+        </div>
+    </div>
+
+    <div id="cx-footer">
+        MADE WITH <span>💖</span> BY C1PH3R &nbsp;|&nbsp; <span>HACK THE PLANET</span>
+    </div>
+
+</div>
+
+<script>
+    /* ── Particle canvas ── */
+    (function () {
+        var canvas = document.getElementById('cx-canvas');
+        var ctx = canvas.getContext('2d');
+        var W, H, particles = [];
+        function resize() { W = canvas.width = window.innerWidth; H = canvas.height = window.innerHeight; }
+        function rand(a, b) { return Math.random() * (b - a) + a; }
+        function Particle() { this.reset(); }
+        Particle.prototype.reset = function () {
+            this.x = rand(0, W); this.y = rand(0, H);
+            this.vx = rand(-0.25, 0.25); this.vy = rand(-0.5, -0.1);
+            this.alpha = rand(0.1, 0.45); this.size = rand(1, 2.2);
+            this.life = 0; this.maxLife = rand(200, 500);
+        };
+        Particle.prototype.update = function () {
+            this.x += this.vx; this.y += this.vy; this.life++;
+            if (this.life > this.maxLife || this.y < 0) this.reset();
+        };
+        Particle.prototype.draw = function () {
+            ctx.save();
+            ctx.globalAlpha = this.alpha * (1 - this.life / this.maxLife);
+            ctx.fillStyle = '#cc1f1f';
+            ctx.shadowColor = '#e53535'; ctx.shadowBlur = 4;
+            ctx.beginPath(); ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2); ctx.fill();
+            ctx.restore();
+        };
+        for (var i = 0; i < 80; i++) particles.push(new Particle());
+        function loop() {
+            ctx.clearRect(0, 0, W, H);
+            particles.forEach(function (p) { p.update(); p.draw(); });
+            requestAnimationFrame(loop);
+        }
+        window.addEventListener('resize', resize);
+        resize(); loop();
+    })();
+
+    /* ── Countdown — uses CTFd page variables ── */
+    (function () {
+        var start = new Date("{{ctf_start}}").getTime();
+        var end = new Date("{{ctf_end}}").getTime();
+        var now = Date.now();
+
+        var elDays = document.getElementById('cx-days');
+        var elHours = document.getElementById('cx-hours');
+        var elMins = document.getElementById('cx-mins');
+        var elSecs = document.getElementById('cx-secs');
+        var elGrid = document.getElementById('cx-cd-grid');
+        var elLive = document.getElementById('cx-cd-live');
+        var elLabel = document.getElementById('cx-cd-label');
+
+        function pad(n) { return String(n).padStart(2, '0'); }
+        function flip(el, val) {
+            if (el.textContent !== val) {
+                el.style.transform = 'scale(1.12)';
+                el.style.color = '#ff6060';
+                setTimeout(function () { el.textContent = val; el.style.transform = ''; el.style.color = ''; }, 150);
+            }
+        }
+
+        /* CTF already ended */
+        if (now >= end) {
+            elGrid.style.display = 'none';
+            elLive.textContent = '🏁 CTF HAS ENDED';
+            elLive.style.display = 'block';
+            return;
+        }
+
+        /* CTF is currently live — count down to end instead */
+        if (now >= start) {
+            elLabel.textContent = '// TIME REMAINING';
+            elLive.textContent = '⚡ CTF IS LIVE — HACK NOW';
+            elLive.style.display = 'block';
+        }
+
+        /* target: count to start if not yet started, else count to end */
+        var target = (now < start) ? start : end;
+
+        var iv = setInterval(function () {
+            var dist = target - Date.now();
+            if (dist <= 0) {
+                clearInterval(iv);
+                elGrid.style.display = 'none';
+                if (Date.now() < end) {
+                    elLabel.textContent = '// TIME REMAINING';
+                    elLive.textContent = '⚡ CTF IS LIVE — HACK NOW';
+                    elLive.style.display = 'block';
+                    target = end;
+                    iv = setInterval(arguments.callee, 1000);
+                } else {
+                    elLive.textContent = '🏁 CTF HAS ENDED';
+                    elLive.style.display = 'block';
+                }
+                return;
+            }
+            flip(elDays, pad(Math.floor(dist / 86400000)));
+            flip(elHours, pad(Math.floor((dist % 86400000) / 3600000)));
+            flip(elMins, pad(Math.floor((dist % 3600000) / 60000)));
+            flip(elSecs, pad(Math.floor((dist % 60000) / 1000)));
+        }, 1000);
+    })();
+</script>
