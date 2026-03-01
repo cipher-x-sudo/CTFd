@@ -42,9 +42,10 @@ RUN useradd \
     --no-log-init \
     --shell /bin/bash \
     -u 1001 \
+    -d /home/ctfd \
     ctfd \
-    && mkdir -p /var/log/CTFd /var/uploads \
-    && chown -R 1001:1001 /var/log/CTFd /var/uploads /opt/CTFd \
+    && mkdir -p /home/ctfd /var/log/CTFd /var/uploads \
+    && chown -R 1001:1001 /home/ctfd /var/log/CTFd /var/uploads /opt/CTFd \
     && chmod 777 /var/uploads \
     && chmod +x /opt/CTFd/docker-entrypoint.sh
 
