@@ -45,6 +45,7 @@ RUN useradd \
     ctfd \
     && mkdir -p /var/log/CTFd /var/uploads \
     && chown -R 1001:1001 /var/log/CTFd /var/uploads /opt/CTFd \
+    && chmod 777 /var/uploads \
     && chmod +x /opt/CTFd/docker-entrypoint.sh
 
 COPY --chown=1001:1001 --from=build /opt/venv /opt/venv
