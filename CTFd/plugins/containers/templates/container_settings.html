@@ -572,6 +572,7 @@
 		const formData = new FormData();
 		formData.append('file', fileInput.files[0]);
 		formData.append('media_type', mediaType);
+		formData.append('nonce', '{{ Session.nonce }}');
 
 		fetch('{{ url_for("containers_admin.api_upload_media") }}', {
 			method: 'POST',
