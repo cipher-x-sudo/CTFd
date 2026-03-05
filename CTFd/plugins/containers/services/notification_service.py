@@ -77,11 +77,11 @@ class NotificationService:
             logger.error(f"Failed to send WaSender notification: {e}")
             return False
 
-    def upload_media(self, file_bytes, mime_type,
-                     api_key=None):
+    def upload_media(self, file_bytes, mime_type, api_key=None):
         """
-        Upload raw bytes to WaSender CDN via Base64 JSON body.
+        Upload raw bytes to WaSender CDN using raw-binary POST.
 
+        Sends file_bytes directly with Content-Type = mime_type.
         Returns the publicUrl string on success, raises RuntimeError on failure.
         """
         _api_key, _, _, _ = self._get_wa_config()
@@ -90,17 +90,13 @@ class NotificationService:
         if not api_key:
             raise RuntimeError("WaSender API key is not configured")
 
-        import base64
-        b64 = base64.b64encode(file_bytes).decode()
-        data_uri = f"data:{mime_type};base64,{b64}"
-
         headers = {
             "Authorization": f"Bearer {api_key}",
-            "Content-Type": "application/json",
+            "Content-Type": mime_type,
         }
         resp = requests.post(
             "https://api.wasenderapi.com/api/upload",
-            json={"base64": data_uri},
+            data=file_bytes,
             headers=headers,
             timeout=30,
         )
