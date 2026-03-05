@@ -794,17 +794,38 @@ def api_upload_media():
 
         media_type = request.form.get('media_type', 'image')
         file = request.files['file']
-        mime_type = file.mimetype or 'application/octet-stream'
+
+        # Derive canonical MIME type from filename extension — more reliable than
+        # browser-reported mimetype (e.g. Chrome sends non-standard "audio/mp3"
+        # instead of the IANA "audio/mpeg", causing WaSender to reject the upload).
+        import os, mimetypes
+        ext = os.path.splitext(file.filename or '')[1].lower()
+        _EXT_MIME = {
+            # audio
+            '.mp3': 'audio/mpeg',
+            '.m4a': 'audio/mp4',
+            '.aac': 'audio/aac',
+            '.ogg': 'audio/ogg',
+            '.amr': 'audio/amr',
+            '.wav': 'audio/wav',
+            # image
+            '.jpg': 'image/jpeg',
+            '.jpeg': 'image/jpeg',
+            '.png': 'image/png',
+            '.gif': 'image/gif',
+            '.webp': 'image/webp',
+        }
+        mime_type = _EXT_MIME.get(ext) or mimetypes.guess_type(file.filename or '')[0] or file.mimetype or 'application/octet-stream'
 
         # Validate MIME type
         allowed_image = {'image/jpeg', 'image/png', 'image/gif', 'image/webp'}
-        allowed_audio = {'audio/mpeg', 'audio/mp3', 'audio/aac', 'audio/ogg',
-                         'audio/amr', 'audio/x-wav', 'audio/wav'}
+        allowed_audio = {'audio/mpeg', 'audio/mp4', 'audio/aac', 'audio/ogg',
+                         'audio/amr', 'audio/wav'}
 
         if media_type == 'image' and mime_type not in allowed_image:
-            return jsonify({'error': f'Unsupported image MIME type: {mime_type}'}), 400
+            return jsonify({'error': f'Unsupported image type: {ext or mime_type}'}), 400
         if media_type == 'audio' and mime_type not in allowed_audio:
-            return jsonify({'error': f'Unsupported audio MIME type: {mime_type}'}), 400
+            return jsonify({'error': f'Unsupported audio type: {ext or mime_type}'}), 400
 
         file_bytes = file.read()
         if len(file_bytes) > 16 * 1024 * 1024:
