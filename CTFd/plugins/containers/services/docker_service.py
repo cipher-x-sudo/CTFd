@@ -146,10 +146,17 @@ class DockerService:
                 pids_limit=pids_limit,
                 labels=container_labels,
                 network=network_arg,
-                # Security options
-                cap_drop=['ALL'],  # Drop all capabilities
-                cap_add=['CHOWN', 'SETUID', 'SETGID'],  # Add back minimal caps
-                security_opt=['no-new-privileges'],
+                # Security options (relaxed for SSH + sudo based challenges like boot2root)
+                cap_drop=['ALL'],
+                cap_add=[
+                    'CHOWN', 'SETUID', 'SETGID',
+                    'DAC_OVERRIDE',      # read /etc/shadow, etc.
+                    'SYS_CHROOT',        # sshd privilege separation
+                    'AUDIT_WRITE',       # PAM login auditing
+                    'KILL',              # sshd child process management
+                    'NET_BIND_SERVICE',  # bind privileged ports (22, 80)
+                    'FOWNER',            # file ownership operations
+                ],
             )
             
             # No need to manually connect if network arg is used
