@@ -174,6 +174,11 @@ def settings():
         'subdomain_network': ContainerConfig.get('subdomain_network', 'ctfd-network'),
         'container_max_concurrent_count': ContainerConfig.get('container_max_concurrent_count', '3'),
         'container_discord_webhook_url': ContainerConfig.get('container_discord_webhook_url', ''),
+        # WaSender
+        'wasender_api_key': ContainerConfig.get('wasender_api_key', ''),
+        'wasender_group_id': ContainerConfig.get('wasender_group_id', ''),
+        'wasender_image_url': ContainerConfig.get('wasender_image_url', ''),
+        'wasender_audio_url': ContainerConfig.get('wasender_audio_url', ''),
     }
     
     # Get Docker status
@@ -744,12 +749,77 @@ def test_notification():
             success = notification_service.send_demo_cheat(url)
         elif type == 'demo_error':
             success = notification_service.send_demo_error(url)
-            
+        elif type == 'wa_connection':
+            success = notification_service.send_wa_test(
+                api_key=data.get('api_key'),
+                group_id=data.get('group_id')
+            )
+        elif type == 'wa_demo_cheat':
+            success = notification_service.send_wa_demo_cheat(
+                api_key=data.get('api_key'),
+                group_id=data.get('group_id')
+            )
+        elif type == 'wa_demo_error':
+            success = notification_service.send_wa_demo_error(
+                api_key=data.get('api_key'),
+                group_id=data.get('group_id')
+            )
+
         if success:
             return jsonify({'success': True})
         else:
              return jsonify({'error': 'Failed to send notification. Check server logs.'}), 400
              
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@admin_bp.route('/api/notifications/upload-media', methods=['POST'], endpoint='api_upload_media')
+@admins_only
+def api_upload_media():
+    """
+    Upload an image or audio file to WaSender CDN and persist the returned publicUrl.
+
+    Form fields:
+        file      - the file to upload (multipart/form-data)
+        media_type - 'image' or 'audio'
+    """
+    try:
+        from .. import notification_service
+        if not notification_service:
+            return jsonify({'error': 'Notification service not available'}), 500
+
+        if 'file' not in request.files:
+            return jsonify({'error': 'No file provided'}), 400
+
+        media_type = request.form.get('media_type', 'image')
+        file = request.files['file']
+        mime_type = file.mimetype or 'application/octet-stream'
+
+        # Validate MIME type
+        allowed_image = {'image/jpeg', 'image/png', 'image/gif', 'image/webp'}
+        allowed_audio = {'audio/mpeg', 'audio/mp3', 'audio/aac', 'audio/ogg',
+                         'audio/amr', 'audio/x-wav', 'audio/wav'}
+
+        if media_type == 'image' and mime_type not in allowed_image:
+            return jsonify({'error': f'Unsupported image MIME type: {mime_type}'}), 400
+        if media_type == 'audio' and mime_type not in allowed_audio:
+            return jsonify({'error': f'Unsupported audio MIME type: {mime_type}'}), 400
+
+        file_bytes = file.read()
+        if len(file_bytes) > 16 * 1024 * 1024:
+            return jsonify({'error': 'File exceeds 16 MB limit'}), 400
+
+        public_url = notification_service.upload_media(file_bytes, mime_type)
+
+        # Persist URL into ContainerConfig
+        config_key = 'wasender_image_url' if media_type == 'image' else 'wasender_audio_url'
+        ContainerConfig.set(config_key, public_url)
+
+        return jsonify({'success': True, 'url': public_url})
+
+    except RuntimeError as e:
+        return jsonify({'error': str(e)}), 400
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 

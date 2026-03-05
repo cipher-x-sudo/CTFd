@@ -31,7 +31,8 @@
 								<li><code>Host:Port</code>: Uses <strong>Connection Hostname</strong> + allocated port
 									(e.g. <code>challenges.ctf.com:30001</code>). Used for TCP/SSH.</li>
 								<li><code>Subdomain</code>: Uses <strong>Base Domain</strong> (e.g.
-									<code>uuid.challenges.ctf.com</code>). Used for Web/HTTP.</li>
+									<code>uuid.challenges.ctf.com</code>). Used for Web/HTTP.
+								</li>
 							</ul>
 						</li>
 						<li class="mb-2"><strong>Connection Hostname:</strong>
@@ -309,6 +310,103 @@
 	</div>
 </form>
 
+<!-- WaSender WhatsApp Notifications Card (outside main form, standalone) -->
+<div class="card mt-3" id="wasender-card">
+	<div class="card-header">
+		<h5><i class="fab fa-whatsapp text-success"></i> WaSender WhatsApp Notifications</h5>
+	</div>
+	<div class="card-body">
+		<div class="alert alert-info">
+			<i class="fas fa-info-circle"></i>
+			Send cheat & error alerts to a WhatsApp group via <strong>WaSender API</strong>.
+			Media URLs expire after <strong>24 hours</strong> — re-upload before each CTF event.
+		</div>
+
+		<!-- API Key -->
+		<div class="form-group">
+			<label for="wasender_api_key">WaSender API Key</label>
+			<div class="input-group">
+				<input class="form-control" type="password" id="wasender_api_key" name="wasender_api_key"
+					value="{{ settings.wasender_api_key }}" placeholder="Your WaSender bearer token">
+				<div class="input-group-append">
+					<button class="btn btn-outline-secondary" type="button" onclick="toggleWaKeyVisibility()"
+						id="wa-key-toggle">
+						<i class="fas fa-eye" id="wa-key-eye"></i>
+					</button>
+				</div>
+			</div>
+		</div>
+
+		<!-- Group ID -->
+		<div class="form-group">
+			<label for="wasender_group_id">WhatsApp Group ID</label>
+			<input class="form-control" type="text" id="wasender_group_id" name="wasender_group_id"
+				value="{{ settings.wasender_group_id }}" placeholder="120363xxxxxx@g.us">
+			<small class="form-text text-muted">The Group JID — find it with the WaSender dashboard.</small>
+		</div>
+
+		<!-- Alert Image Upload -->
+		<div class="form-group">
+			<label>Alert Image</label>
+			<div class="d-flex align-items-center flex-wrap gap-2">
+				<input class="form-control-file" type="file" id="wa_image_file"
+					accept="image/jpeg,image/png,image/gif,image/webp" style="max-width:300px;">
+				<button type="button" class="btn btn-sm btn-outline-primary ml-2" onclick="uploadWaMedia('image')">
+					<i class="fas fa-upload"></i> Upload
+				</button>
+				<span id="wa_image_status" class="badge badge-secondary ml-2">
+					{% if settings.wasender_image_url %}
+					✅ {{ settings.wasender_image_url.split('/')[-1][:30] }}
+					{% else %}
+					None
+					{% endif %}
+				</span>
+			</div>
+			<small class="form-text text-muted">JPEG/PNG/GIF/WebP ≤ 16 MB. Sent alongside text alerts.</small>
+		</div>
+
+		<!-- Alert Audio Upload -->
+		<div class="form-group">
+			<label>Alert Audio</label>
+			<div class="d-flex align-items-center flex-wrap gap-2">
+				<input class="form-control-file" type="file" id="wa_audio_file"
+					accept="audio/mpeg,audio/aac,audio/ogg,audio/amr,audio/wav" style="max-width:300px;">
+				<button type="button" class="btn btn-sm btn-outline-primary ml-2" onclick="uploadWaMedia('audio')">
+					<i class="fas fa-upload"></i> Upload
+				</button>
+				<span id="wa_audio_status" class="badge badge-secondary ml-2">
+					{% if settings.wasender_audio_url %}
+					✅ {{ settings.wasender_audio_url.split('/')[-1][:30] }}
+					{% else %}
+					None
+					{% endif %}
+				</span>
+			</div>
+			<small class="form-text text-muted">MP3/AAC/OGG/AMR/WAV ≤ 16 MB. Sent as a separate audio message.</small>
+		</div>
+
+		<!-- WaSender credentials save button -->
+		<div class="mb-3">
+			<button type="button" class="btn btn-primary btn-sm" onclick="saveWaSenderConfig()">
+				<i class="fas fa-save"></i> Save WaSender Settings
+			</button>
+		</div>
+
+		<!-- Test Buttons -->
+		<div class="mt-2">
+			<button type="button" class="btn btn-outline-success btn-sm" onclick="testWasender('wa_connection')">
+				<i class="fas fa-plug"></i> Test Connection
+			</button>
+			<button type="button" class="btn btn-outline-danger btn-sm ml-1" onclick="testWasender('wa_demo_cheat')">
+				<i class="fas fa-exclamation-triangle"></i> Demo Cheat
+			</button>
+			<button type="button" class="btn btn-outline-warning btn-sm ml-1" onclick="testWasender('wa_demo_error')">
+				<i class="fas fa-bug"></i> Demo Error
+			</button>
+		</div>
+	</div>
+</div>
+
 {% include "config/container_status.html" %}
 
 {% endblock %}
@@ -379,7 +477,7 @@
 			.catch(e => alert('Network error: ' + e));
 	});
 
-	// Webhook testing
+	// Webhook testing (Discord)
 	function testWebhook(type) {
 		const url = document.getElementById('container_discord_webhook_url').value;
 		if (!url) {
@@ -410,6 +508,120 @@
 				} else {
 					alert('Failed: ' + (data.error || 'Unknown error'));
 				}
+			})
+			.catch(e => alert('Network error: ' + e))
+			.finally(() => {
+				btn.innerHTML = originalText;
+				btn.disabled = false;
+			});
+	}
+
+	// ── WaSender helpers ──────────────────────────────────────────────────────
+
+	function toggleWaKeyVisibility() {
+		const input = document.getElementById('wasender_api_key');
+		const eye = document.getElementById('wa-key-eye');
+		if (input.type === 'password') {
+			input.type = 'text';
+			eye.className = 'fas fa-eye-slash';
+		} else {
+			input.type = 'password';
+			eye.className = 'fas fa-eye';
+		}
+	}
+
+	function saveWaSenderConfig() {
+		const payload = {
+			wasender_api_key: document.getElementById('wasender_api_key').value,
+			wasender_group_id: document.getElementById('wasender_group_id').value,
+		};
+		fetch('{{ url_for("containers_admin.api_config_update") }}', {
+			method: 'POST',
+			headers: {
+				'Content-Type': 'application/json',
+				'CSRF-Token': '{{ Session.nonce }}'
+			},
+			body: JSON.stringify(payload)
+		})
+			.then(r => r.json())
+			.then(data => {
+				if (data.success) alert('WaSender settings saved!');
+				else alert('Error: ' + (data.error || 'Unknown error'));
+			})
+			.catch(e => alert('Network error: ' + e));
+	}
+
+	function uploadWaMedia(mediaType) {
+		const fileInput = document.getElementById('wa_' + mediaType + '_file');
+		const statusBadge = document.getElementById('wa_' + mediaType + '_status');
+
+		if (!fileInput.files.length) {
+			alert('Please select a file first.');
+			return;
+		}
+
+		const apiKey = document.getElementById('wasender_api_key').value;
+		if (!apiKey) {
+			alert('Please enter your WaSender API Key first.');
+			return;
+		}
+
+		statusBadge.className = 'badge badge-warning ml-2';
+		statusBadge.textContent = '⏳ Uploading...';
+
+		const formData = new FormData();
+		formData.append('file', fileInput.files[0]);
+		formData.append('media_type', mediaType);
+
+		fetch('{{ url_for("containers_admin.api_upload_media") }}', {
+			method: 'POST',
+			headers: { 'CSRF-Token': '{{ Session.nonce }}' },
+			body: formData
+		})
+			.then(r => r.json())
+			.then(data => {
+				if (data.success) {
+					const filename = data.url.split('/').pop().substring(0, 30);
+					statusBadge.className = 'badge badge-success ml-2';
+					statusBadge.textContent = '✅ ' + filename;
+				} else {
+					statusBadge.className = 'badge badge-danger ml-2';
+					statusBadge.textContent = '❌ Failed';
+					alert('Upload failed: ' + (data.error || 'Unknown error'));
+				}
+			})
+			.catch(e => {
+				statusBadge.className = 'badge badge-danger ml-2';
+				statusBadge.textContent = '❌ Error';
+				alert('Network error: ' + e);
+			});
+	}
+
+	function testWasender(type) {
+		const apiKey = document.getElementById('wasender_api_key').value;
+		const groupId = document.getElementById('wasender_group_id').value;
+		if (!apiKey || !groupId) {
+			alert('Please enter your WaSender API Key and Group ID first.');
+			return;
+		}
+
+		const btn = event.target.closest('button');
+		const originalText = btn.innerHTML;
+		btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sending...';
+		btn.disabled = true;
+
+		fetch('{{ url_for("containers_admin.api_notification_test") }}', {
+			method: 'POST',
+			headers: {
+				'Content-Type': 'application/json',
+				'CSRF-Token': '{{ Session.nonce }}'
+			},
+			body: JSON.stringify({ type: type, api_key: apiKey, group_id: groupId })
+		})
+			.then(r => r.json())
+			.then(data => {
+				if (data.success) alert('Sent! Check your WhatsApp group.');
+				else alert('Failed: ' + (data.error || 'Unknown error'));
 			})
 			.catch(e => alert('Network error: ' + e))
 			.finally(() => {

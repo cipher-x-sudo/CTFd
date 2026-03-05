@@ -526,6 +526,11 @@ def _initialize_default_config():
         'max_renewals': '3',
         'max_memory': '512m',
         'max_cpu': '0.5',
+        # WaSender WhatsApp
+        'wasender_api_key':   '',
+        'wasender_group_id':  '',
+        'wasender_image_url': '',
+        'wasender_audio_url': '',
     }
     
     for key, value in defaults.items():
