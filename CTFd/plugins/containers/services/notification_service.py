@@ -206,7 +206,9 @@ class NotificationService:
         Uses container_first_blood_webhook_url if set, else container_discord_webhook_url.
         Message template and enable flag are read from ContainerConfig (GUI).
         """
-        if ContainerConfig.get('container_first_blood_enabled', 'false') != 'true':
+        enabled = (ContainerConfig.get('container_first_blood_enabled', '') or '').strip().lower() == 'true'
+        if not enabled:
+            logger.info("First blood notification skipped (disabled or not configured).")
             return False
 
         webhook_url = (
@@ -214,6 +216,7 @@ class NotificationService:
             or self._get_webhook_url()
         )
         if not webhook_url:
+            logger.info("First blood notification skipped (no Discord webhook URL).")
             return False
 
         template = (
@@ -245,16 +248,33 @@ class NotificationService:
                 timeout=5,
             )
             discord_ok = response.status_code in (200, 204)
+            if discord_ok:
+                logger.info("First blood announced for challenge %s (Discord).", chal_name)
+            else:
+                logger.warning("First blood Discord returned status %s for challenge %s.", response.status_code, chal_name)
         except Exception as e:
-            logger.error(f"Failed to send first-blood Discord notification: {e}")
+            logger.error("Failed to send first-blood Discord notification: %s", e)
 
         # Also send to WhatsApp using the configured WaSender group ID
         try:
             self._send_whatsapp(message, image_url="", audio_url="")
         except Exception as e:
-            logger.error(f"Failed to send first-blood WhatsApp notification: {e}")
+            logger.error("Failed to send first-blood WhatsApp notification: %s", e)
 
         return discord_ok
+
+    def send_demo_first_blood(self):
+        """
+        Send a demo first-blood message using the current template and webhook (for testing).
+        Uses the same path as real first blood; enable and webhook must be set.
+        """
+        class _Mock:
+            pass
+        user, team, challenge = _Mock(), _Mock(), _Mock()
+        user.name = "TestUser"
+        team.name = "TestTeam"
+        challenge.name = "Demo Challenge"
+        return self.notify_first_blood(user, team, challenge)
 
     def send_test(self, webhook_url=None):
         """Send a simple test message"""

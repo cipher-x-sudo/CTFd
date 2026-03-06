@@ -756,6 +756,12 @@ def test_notification():
             success = notification_service.send_demo_cheat(url)
         elif type == 'demo_error':
             success = notification_service.send_demo_error(url)
+        elif type == 'demo_first_blood':
+            success = notification_service.send_demo_first_blood()
+            if not success:
+                return jsonify({
+                    'error': 'First blood test failed. Enable First Blood, set a Discord webhook, and check server logs.'
+                }), 400
         elif type == 'wa_connection':
             success = notification_service.send_wa_test(
                 api_key=data.get('api_key'),

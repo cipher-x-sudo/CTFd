@@ -248,8 +248,12 @@ class ContainerChallengeType(BaseChallenge):
 
         # First blood: this solve is the first for this challenge
         is_first_blood = Solves.query.filter_by(challenge_id=challenge.id).count() == 1
-        if is_first_blood and notification_service:
-            notification_service.notify_first_blood(user, team, challenge)
+        if is_first_blood:
+            if notification_service:
+                logger.debug("First blood for challenge %s, sending announcement.", challenge.name)
+                notification_service.notify_first_blood(user, team, challenge)
+            else:
+                logger.warning("First blood detected but notification service not available; announcement skipped.")
         
         # Only recalculate value for dynamic challenges
         # Dynamic challenges have container_decay set
