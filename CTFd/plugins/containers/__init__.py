@@ -245,6 +245,11 @@ class ContainerChallengeType(BaseChallenge):
             request: Flask request
         """
         super().solve(user, team, challenge, request)
+
+        # First blood: this solve is the first for this challenge
+        is_first_blood = Solves.query.filter_by(challenge_id=challenge.id).count() == 1
+        if is_first_blood and notification_service:
+            notification_service.notify_first_blood(user, team, challenge)
         
         # Only recalculate value for dynamic challenges
         # Dynamic challenges have container_decay set

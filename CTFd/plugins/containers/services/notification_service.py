@@ -193,6 +193,38 @@ class NotificationService:
             fields=fields
         )
 
+    def notify_first_blood(self, user, team, challenge):
+        """
+        Send first-blood announcement to Discord (content-only message).
+        Uses existing container_discord_webhook_url. Does not block solve flow on failure.
+        """
+        webhook_url = self._get_webhook_url()
+        if not webhook_url:
+            return False
+
+        user_name = user.name if user else "Unknown"
+        team_name = team.name if team else (user.name if user else "Solo")
+        chal_name = challenge.name if challenge else "Unknown"
+        message = (
+            ":knife::drop_of_blood: First Blood for challenge **{chal_name}** "
+            "goes to **{user_name}** of team **__{team_name}__**!"
+        ).format(
+            chal_name=chal_name,
+            user_name=user_name,
+            team_name=team_name,
+        )
+
+        try:
+            response = requests.post(
+                webhook_url,
+                json={"content": message},
+                timeout=5,
+            )
+            return response.status_code in (200, 204)
+        except Exception as e:
+            logger.error(f"Failed to send first-blood Discord notification: {e}")
+            return False
+
     def send_test(self, webhook_url=None):
         """Send a simple test message"""
         url_to_use = webhook_url or self._get_webhook_url()
