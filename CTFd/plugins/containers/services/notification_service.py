@@ -5,6 +5,13 @@ from ..models.config import ContainerConfig
 
 logger = logging.getLogger(__name__)
 
+# Default first-blood Discord message template (placeholders: chal_name, user_name, team_name)
+DEFAULT_FIRST_BLOOD_MESSAGE = (
+    ":knife::drop_of_blood: First Blood for challenge **{chal_name}** "
+    "goes to **{user_name}** of team **__{team_name}__**!"
+)
+
+
 class NotificationService:
     def __init__(self):
         self.webhook_url = None
@@ -196,34 +203,58 @@ class NotificationService:
     def notify_first_blood(self, user, team, challenge):
         """
         Send first-blood announcement to Discord (content-only message).
-        Uses existing container_discord_webhook_url. Does not block solve flow on failure.
+        Uses container_first_blood_webhook_url if set, else container_discord_webhook_url.
+        Message template and enable flag are read from ContainerConfig (GUI).
         """
-        webhook_url = self._get_webhook_url()
+        if ContainerConfig.get('container_first_blood_enabled', 'false') != 'true':
+            return False
+
+        webhook_url = (
+            ContainerConfig.get('container_first_blood_webhook_url', '').strip()
+            or self._get_webhook_url()
+        )
         if not webhook_url:
             return False
 
+        template = (
+            ContainerConfig.get('container_first_blood_message', '').strip()
+            or DEFAULT_FIRST_BLOOD_MESSAGE
+        )
         user_name = user.name if user else "Unknown"
         team_name = team.name if team else (user.name if user else "Solo")
         chal_name = challenge.name if challenge else "Unknown"
-        message = (
-            ":knife::drop_of_blood: First Blood for challenge **{chal_name}** "
-            "goes to **{user_name}** of team **__{team_name}__**!"
-        ).format(
-            chal_name=chal_name,
-            user_name=user_name,
-            team_name=team_name,
-        )
+        try:
+            message = template.format(
+                chal_name=chal_name,
+                user_name=user_name,
+                team_name=team_name,
+            )
+        except KeyError as e:
+            logger.warning(f"First-blood template has invalid placeholder: {e}")
+            message = DEFAULT_FIRST_BLOOD_MESSAGE.format(
+                chal_name=chal_name,
+                user_name=user_name,
+                team_name=team_name,
+            )
 
+        discord_ok = False
         try:
             response = requests.post(
                 webhook_url,
                 json={"content": message},
                 timeout=5,
             )
-            return response.status_code in (200, 204)
+            discord_ok = response.status_code in (200, 204)
         except Exception as e:
             logger.error(f"Failed to send first-blood Discord notification: {e}")
-            return False
+
+        # Also send to WhatsApp using the configured WaSender group ID
+        try:
+            self._send_whatsapp(message, image_url="", audio_url="")
+        except Exception as e:
+            logger.error(f"Failed to send first-blood WhatsApp notification: {e}")
+
+        return discord_ok
 
     def send_test(self, webhook_url=None):
         """Send a simple test message"""

@@ -213,6 +213,44 @@
 
 	<div class="card mt-3">
 		<div class="card-header">
+			<h5><i class="fas fa-tint"></i> First Blood Discord</h5>
+		</div>
+		<div class="card-body">
+			<div class="form-group">
+				<div class="form-check">
+					<input class="form-check-input" type="checkbox" name="container_first_blood_enabled"
+						id="container_first_blood_enabled" value="true"
+						{{ 'checked' if settings.container_first_blood_enabled == 'true' else '' }}>
+					<label class="form-check-label" for="container_first_blood_enabled">
+						<strong>Enable First Blood announcements</strong>
+					</label>
+				</div>
+				<small class="form-text text-muted">
+					When the first solver completes a container challenge, send a message to Discord.
+				</small>
+			</div>
+			<div class="form-group">
+				<label for="container_first_blood_webhook_url">First Blood Webhook URL (optional)</label>
+				<input class="form-control" type="text" name="container_first_blood_webhook_url"
+					id="container_first_blood_webhook_url" placeholder="https://discord.com/api/webhooks/..."
+					value="{{ settings.container_first_blood_webhook_url }}">
+				<small class="form-text text-muted">
+					Leave empty to use the main Discord Webhook URL above.
+				</small>
+			</div>
+			<div class="form-group">
+				<label for="container_first_blood_message">Message template</label>
+				<textarea class="form-control" name="container_first_blood_message" id="container_first_blood_message"
+					rows="3" placeholder="Use placeholders: {chal_name}, {user_name}, {team_name}">{{ settings.container_first_blood_message }}</textarea>
+				<small class="form-text text-muted">
+					Placeholders: <code>{chal_name}</code>, <code>{user_name}</code>, <code>{team_name}</code>. Discord markdown is supported (e.g. **bold**, __underline__).
+				</small>
+			</div>
+		</div>
+	</div>
+
+	<div class="card mt-3">
+		<div class="card-header">
 			<h5>Port Configuration</h5>
 		</div>
 		<div class="card-body">
@@ -461,6 +499,9 @@
 		// Fix: Checkboxes are not included if unchecked, so we manually add them
 		if (!document.getElementById('subdomain_enabled').checked) {
 			formData.append('subdomain_enabled', 'false');
+		}
+		if (!document.getElementById('container_first_blood_enabled').checked) {
+			formData.append('container_first_blood_enabled', 'false');
 		}
 
 		const data = Object.fromEntries(formData);

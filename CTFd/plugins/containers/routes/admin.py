@@ -9,6 +9,7 @@ from ..models.challenge import ContainerChallenge
 from ..models.flag import ContainerFlagAttempt
 from ..models.audit import ContainerAuditLog
 from ..models.config import ContainerConfig
+from ..services.notification_service import DEFAULT_FIRST_BLOOD_MESSAGE
 from CTFd.utils.security.auth import generate_nonce
 
 admin_bp = Blueprint('containers_admin', __name__, url_prefix='/admin/containers')
@@ -174,6 +175,12 @@ def settings():
         'subdomain_network': ContainerConfig.get('subdomain_network', 'ctfd-network'),
         'container_max_concurrent_count': ContainerConfig.get('container_max_concurrent_count', '3'),
         'container_discord_webhook_url': ContainerConfig.get('container_discord_webhook_url', ''),
+        # First Blood Discord
+        'container_first_blood_enabled': ContainerConfig.get('container_first_blood_enabled', 'false'),
+        'container_first_blood_webhook_url': ContainerConfig.get('container_first_blood_webhook_url', ''),
+        'container_first_blood_message': ContainerConfig.get(
+            'container_first_blood_message', DEFAULT_FIRST_BLOOD_MESSAGE
+        ),
         # WaSender
         'wasender_api_key': ContainerConfig.get('wasender_api_key', ''),
         'wasender_group_id': ContainerConfig.get('wasender_group_id', ''),
