@@ -764,6 +764,20 @@ def test_notification():
                 api_key=data.get('api_key'),
                 group_id=data.get('group_id')
             )
+        elif type == 'wa_test_image':
+            success = notification_service.send_wa_test_image(
+                api_key=data.get('api_key'),
+                group_id=data.get('group_id')
+            )
+            if not success:
+                return jsonify({'error': 'No image URL stored. Upload an image first.'}), 400
+        elif type == 'wa_test_audio':
+            success = notification_service.send_wa_test_audio(
+                api_key=data.get('api_key'),
+                group_id=data.get('group_id')
+            )
+            if not success:
+                return jsonify({'error': 'No audio URL stored. Upload an audio file first.'}), 400
 
         if success:
             return jsonify({'success': True})

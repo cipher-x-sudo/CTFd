@@ -236,6 +236,28 @@ class NotificationService:
             fields=fields
         )
 
+    def send_wa_test_image(self, api_key=None, group_id=None):
+        """Send a test message that includes the stored image URL."""
+        _, _, image_url, _ = self._get_wa_config()
+        if not image_url:
+            return False  # no image stored yet
+        return self._send_whatsapp(
+            "🖼️ *Image Test*\nThis is a test message with the stored alert image.",
+            api_key=api_key, group_id=group_id,
+            image_url=image_url, audio_url="",
+        )
+
+    def send_wa_test_audio(self, api_key=None, group_id=None):
+        """Send a test message that plays the stored audio URL."""
+        _, _, _, audio_url = self._get_wa_config()
+        if not audio_url:
+            return False  # no audio stored yet
+        return self._send_whatsapp(
+            "🔊 *Audio Test*\nThis is a test message with the stored alert audio.",
+            api_key=api_key, group_id=group_id,
+            image_url="", audio_url=audio_url,
+        )
+
     def send_wa_demo_cheat(self, api_key=None, group_id=None):
         """Send a demo cheat alert to WhatsApp."""
         fields = [
