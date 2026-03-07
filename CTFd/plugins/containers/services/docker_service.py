@@ -130,6 +130,15 @@ class DockerService:
             network_arg = network if network else 'bridge'
             # If network is provided, network_mode should be None (or handled by network arg)
             # docker-py run() takes 'network' to connect to a specific network
+
+            # Remove any existing container with the same name to avoid 409 Conflict
+            if name:
+                try:
+                    existing = self.client.containers.get(name)
+                    existing.remove(force=True)
+                    logger.info(f"Removed existing container '{name}' to reuse name")
+                except docker.errors.NotFound:
+                    pass
             
             # Create container
             container = self.client.containers.run(
