@@ -25,6 +25,22 @@ def _get_emoji_for_category(category):
     choices = emojis_map.get((category or "").strip().lower(), [])
     return random.choice(choices) if choices else ""
 
+
+def _discord_to_whatsapp_markdown(text):
+    """
+    Convert Discord-style markdown to WhatsApp-style so bold/underline render correctly.
+    Discord: **bold**, __underline__. WhatsApp: *bold*, _italic_.
+    """
+    if not text:
+        return text
+    return (
+        text.replace("**__", "*")
+        .replace("__**", "*")
+        .replace("**", "*")
+        .replace("__", "_")
+    )
+
+
 # Default first-blood Discord message template (placeholders: chal_name, user_name, team_name, emojis)
 DEFAULT_FIRST_BLOOD_MESSAGE = (
     ":knife::drop_of_blood: First Blood for challenge **{chal_name}** "
@@ -321,9 +337,10 @@ class NotificationService:
         except Exception as e:
             logger.error("Failed to send first-blood Discord notification: %s", e)
 
-        # Also send to WhatsApp using the configured WaSender group ID
+        # Also send to WhatsApp using the configured WaSender group ID (convert Discord markdown to WhatsApp)
         try:
-            self._send_whatsapp(message, image_url="", audio_url="")
+            wa_text = _discord_to_whatsapp_markdown(message)
+            self._send_whatsapp(wa_text, image_url="", audio_url="")
         except Exception as e:
             logger.error("Failed to send first-blood WhatsApp notification: %s", e)
 
@@ -381,7 +398,8 @@ class NotificationService:
             logger.error("Failed to send solve Discord notification: %s", e)
             ok = False
         try:
-            self._send_whatsapp(message, image_url="", audio_url="")
+            wa_text = _discord_to_whatsapp_markdown(message)
+            self._send_whatsapp(wa_text, image_url="", audio_url="")
         except Exception as e:
             logger.error("Failed to send solve WhatsApp notification: %s", e)
         self._post_announcer_and_leaderboard(
