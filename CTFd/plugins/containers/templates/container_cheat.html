@@ -100,10 +100,11 @@
 
 {% block scripts %}
 <script>
+	var unbanUrl = '{{ url_for("containers_admin.api_team_unban", team_id=0) }}';
 	function unbanTeam(teamId, btn) {
 		btn.disabled = true;
 		btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> ...';
-		fetch('{{ url_for("containers_admin.api_team_unban", team_id="__ID__") }}'.replace('__ID__', teamId), {
+		fetch(unbanUrl.replace(/\/0\//, '/' + teamId + '/'), {
 			method: 'POST',
 			headers: {
 				'Content-Type': 'application/json',
