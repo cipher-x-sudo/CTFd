@@ -311,6 +311,27 @@
 
 	<div class="card mt-3">
 		<div class="card-header">
+			<h5><i class="fas fa-shield-alt"></i> Anti-cheat</h5>
+		</div>
+		<div class="card-body">
+			<div class="form-group">
+				<div class="form-check">
+					<input class="form-check-input" type="checkbox" name="container_autoban_enabled"
+						id="container_autoban_enabled" value="true"
+						{{ 'checked' if (settings.container_autoban_enabled or 'true')|lower == 'true' else '' }}>
+					<label class="form-check-label" for="container_autoban_enabled">
+						<strong>Enable autoban on flag reuse</strong>
+					</label>
+				</div>
+				<small class="form-text text-muted">
+					When a flag belonging to another account is submitted, automatically ban both accounts (and in team mode, both teams and all members). If disabled, the cheat is still logged and notifications sent, but no bans are applied.
+				</small>
+			</div>
+		</div>
+	</div>
+
+	<div class="card mt-3">
+		<div class="card-header">
 			<h5>Port Configuration</h5>
 		</div>
 		<div class="card-body">
@@ -331,6 +352,19 @@
 						Ending port for container allocation
 					</small>
 				</div>
+			</div>
+			<div class="form-group">
+				<div class="form-check">
+					<input class="form-check-input" type="checkbox" name="port_allocation_random"
+						id="port_allocation_random" value="true"
+						{{ 'checked' if (settings.port_allocation_random or '')|lower == 'true' else '' }}>
+					<label class="form-check-label" for="port_allocation_random">
+						<strong>Assign ports randomly within range</strong>
+					</label>
+				</div>
+				<small class="form-text text-muted">
+					When enabled, ports are allocated randomly from the available range instead of sequentially.
+				</small>
 			</div>
 			<div class="alert alert-warning">
 				<i class="fas fa-exclamation-triangle"></i> <strong>Note:</strong>
@@ -565,6 +599,12 @@
 		}
 		if (!document.getElementById('container_announce_all_solves').checked) {
 			formData.append('container_announce_all_solves', 'false');
+		}
+		if (!document.getElementById('container_autoban_enabled').checked) {
+			formData.append('container_autoban_enabled', 'false');
+		}
+		if (!document.getElementById('port_allocation_random').checked) {
+			formData.append('port_allocation_random', 'false');
 		}
 
 		const data = Object.fromEntries(formData);

@@ -127,47 +127,58 @@ class AntiCheatService:
             attempt.is_cheating = True
             attempt.flag_owner_account_id = flag_record.account_id
             
-            # BAN cả 2 accounts (cheater và flag owner - possible collaborator)
             from CTFd.models import Teams, Users
             from CTFd.utils import get_config
-            
+            from ..models.config import ContainerConfig
+
             mode = get_config('user_mode')
             is_team_mode = (mode == 'teams')
-            
-            if is_team_mode:
-                # Ban both teams and ALL members of both teams
-                cheater_team = Teams.query.get(account_id)
-                owner_team = Teams.query.get(flag_record.account_id)
-                
-                if cheater_team:
-                    cheater_team.banned = True
-                    # Ban tất cả users trong team
-                    cheater_members = Users.query.filter_by(team_id=account_id).all()
-                    for member in cheater_members:
-                        member.banned = True
-                    logger.critical(f"BANNED team {account_id} ({cheater_team.name}) and {len(cheater_members)} members for flag reuse")
-                
-                if owner_team:
-                    owner_team.banned = True
-                    # Ban tất cả users trong team
-                    owner_members = Users.query.filter_by(team_id=flag_record.account_id).all()
-                    for member in owner_members:
-                        member.banned = True
-                    logger.critical(f"BANNED team {flag_record.account_id} ({owner_team.name}) and {len(owner_members)} members for possible flag sharing")
+            autoban_enabled = (ContainerConfig.get('container_autoban_enabled', 'true') or 'true').strip().lower() == 'true'
+
+            cheater_user = None
+            owner_user = None
+
+            if autoban_enabled:
+                # BAN both accounts (cheater and flag owner - possible collaborator)
+                if is_team_mode:
+                    cheater_team = Teams.query.get(account_id)
+                    owner_team = Teams.query.get(flag_record.account_id)
+
+                    if cheater_team:
+                        cheater_team.banned = True
+                        cheater_members = Users.query.filter_by(team_id=account_id).all()
+                        for member in cheater_members:
+                            member.banned = True
+                        logger.critical(f"BANNED team {account_id} ({cheater_team.name}) and {len(cheater_members)} members for flag reuse")
+
+                    if owner_team:
+                        owner_team.banned = True
+                        owner_members = Users.query.filter_by(team_id=flag_record.account_id).all()
+                        for member in owner_members:
+                            member.banned = True
+                        logger.critical(f"BANNED team {flag_record.account_id} ({owner_team.name}) and {len(owner_members)} members for possible flag sharing")
+                else:
+                    cheater_user = Users.query.get(account_id)
+                    owner_user = Users.query.get(flag_record.account_id)
+
+                    if cheater_user:
+                        cheater_user.banned = True
+                        logger.critical(f"BANNED user {account_id} ({cheater_user.name}) for flag reuse")
+
+                    if owner_user:
+                        owner_user.banned = True
+                        logger.critical(f"BANNED user {flag_record.account_id} ({owner_user.name}) for possible flag sharing")
+                action_taken = 'both_accounts_banned'
             else:
-                # Ban cả 2 users
-                cheater_user = Users.query.get(account_id)
-                owner_user = Users.query.get(flag_record.account_id)
-                
-                if cheater_user:
-                    cheater_user.banned = True
-                    logger.critical(f"BANNED user {account_id} ({cheater_user.name}) for flag reuse")
-                
-                if owner_user:
-                    owner_user.banned = True
-                    logger.critical(f"BANNED user {flag_record.account_id} ({owner_user.name}) for possible flag sharing")
-            
-            # Audit log with critical severity
+                if is_team_mode:
+                    cheater_team = Teams.query.get(account_id)
+                    owner_team = Teams.query.get(flag_record.account_id)
+                else:
+                    cheater_user = Users.query.get(account_id)
+                    owner_user = Users.query.get(flag_record.account_id)
+                action_taken = 'logged_only'
+
+            # Audit log (critical when banned, otherwise still log the cheat)
             audit_log = ContainerAuditLog(
                 event_type='flag_reuse_detected',
                 challenge_id=challenge_id,
@@ -178,31 +189,31 @@ class AntiCheatService:
                     'actual_owner_account_id': flag_record.account_id,
                     'flag_status': flag_record.flag_status,
                     'ip_address': ip_address,
-                    'action_taken': 'both_accounts_banned'
+                    'action_taken': action_taken
                 },
                 severity='critical',
                 ip_address=ip_address,
                 user_agent=user_agent
             )
-            
+
             db.session.add(attempt)
             db.session.add(audit_log)
             db.session.commit()
-            
+
             logger.warning(
                 f"CHEAT DETECTED: Account {account_id} submitted flag belonging to {flag_record.account_id} "
-                f"for challenge {challenge_id} - BOTH ACCOUNTS BANNED"
+                f"for challenge {challenge_id}" + (" - BOTH ACCOUNTS BANNED" if autoban_enabled else " - LOGGED ONLY (autoban disabled)")
             )
-            
-            # Trigger Discord Notification
+
+            # Trigger Discord Notification (still notify when autoban disabled)
             if self.notification_service:
                 self.notification_service.notify_cheat(
-                    user=cheater_user if not is_team_mode else None, # Teams handled differently in notify but simplistic here
+                    user=cheater_user if not is_team_mode else None,
                     challenge=challenge,
                     flag=submitted_flag,
-                    owner=owner_user if not is_team_mode else None # Teams handled differently
+                    owner=owner_user if not is_team_mode else None
                 )
-            
+
             # Don't reveal to user that flag reuse was detected
             return (False, "Incorrect", True)
         

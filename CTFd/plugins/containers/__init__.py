@@ -540,10 +540,12 @@ def _initialize_default_config():
         'connection_host': 'localhost',
         'port_range_start': '30000',
         'port_range_end': '31000',
+        'port_allocation_random': 'false',
         'default_timeout': '60',
         'max_renewals': '3',
         'max_memory': '512m',
         'max_cpu': '0.5',
+        'container_autoban_enabled': 'true',
         # WaSender WhatsApp
         'wasender_api_key':   '',
         'wasender_group_id':  '',

@@ -173,6 +173,8 @@ def settings():
         'container_maxcpu': ContainerConfig.get('max_cpu', '0.5'),
         'port_range_start': ContainerConfig.get('port_range_start', '30000'),
         'port_range_end': ContainerConfig.get('port_range_end', '31000'),
+        'port_allocation_random': ContainerConfig.get('port_allocation_random', 'false'),
+        'container_autoban_enabled': ContainerConfig.get('container_autoban_enabled', 'true'),
         # Subdomain routing (Traefik)
         'subdomain_enabled': ContainerConfig.get('subdomain_enabled', 'false'),
         'subdomain_base_domain': ContainerConfig.get('subdomain_base_domain', ''),
@@ -250,11 +252,14 @@ def cheats():
     
     # Get Docker status
     connected, docker_info = _get_docker_status()
-    
-    return render_template('container_cheat.html', 
-                         cheat_logs=cheat_logs, 
-                         connected=connected, 
+    from CTFd.utils import get_config
+    is_teams_mode = get_config('user_mode') == 'teams'
+
+    return render_template('container_cheat.html',
+                         cheat_logs=cheat_logs,
+                         connected=connected,
                          docker_info=docker_info,
+                         is_teams_mode=is_teams_mode,
                          active_page='cheats')
 
 
@@ -467,6 +472,35 @@ def get_stats():
         
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+
+
+@admin_bp.route('/api/teams/<int:team_id>/unban', methods=['POST'], endpoint='api_team_unban')
+@admins_only
+def team_unban(team_id):
+    """
+    Unban a team and all its members. Only available in team mode.
+    """
+    from CTFd.utils import get_config
+    from CTFd.models import Teams, Users
+
+    if get_config('user_mode') != 'teams':
+        return jsonify({'success': False, 'error': 'Team unban is only available in team mode'}), 400
+
+    team = Teams.query.get(team_id)
+    if not team:
+        return jsonify({'success': False, 'error': 'Team not found'}), 404
+
+    team.banned = False
+    members = Users.query.filter_by(team_id=team.id).all()
+    for user in members:
+        user.banned = False
+    db.session.commit()
+
+    return jsonify({
+        'success': True,
+        'team_id': team_id,
+        'members_unbanned': len(members)
+    })
 
 
 @admin_bp.route('/api/cheats', methods=['GET'], endpoint='api_cheats')
