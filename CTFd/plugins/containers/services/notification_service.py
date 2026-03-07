@@ -26,19 +26,48 @@ def _get_emoji_for_category(category):
     return random.choice(choices) if choices else ""
 
 
+# Discord/Slack :shortcode: -> Unicode for WhatsApp (WhatsApp does not interpret :name:)
+_DISCORD_EMOJI_TO_UNICODE = {
+    ":knife:": "\U0001f52a",  # 🔪
+    ":drop_of_blood:": "\U0001fa78",  # 🩸
+    ":globe_with_meridians:": "\U0001f310",  # 🌐
+    ":sob:": "\U0001f62d",  # 😭
+    ":closed_lock_with_key:": "\U0001f510",  # 🔐
+    ":bug:": "\U0001f41b",  # 🐛
+    ":rewind:": "\u23ea",  # ⏪
+    ":mag:": "\U0001f50d",  # 🔍
+    ":detective:": "\U0001f575",  # 🕵
+    ":white_large_square:": "\u2b1c",  # ⬜
+    ":chains:": "\u26d3",  # ⛓
+    ":jigsaw:": "\U0001f9e9",  # 🧩
+}
+
+
+def _discord_emoji_to_unicode(text):
+    """Replace Discord :shortcode: with Unicode emoji for WhatsApp."""
+    if not text:
+        return text
+    out = text
+    for shortcode, unicode_char in _DISCORD_EMOJI_TO_UNICODE.items():
+        out = out.replace(shortcode, unicode_char)
+    return out
+
+
 def _discord_to_whatsapp_markdown(text):
     """
     Convert Discord-style markdown to WhatsApp-style so bold/underline render correctly.
     Discord: **bold**, __underline__. WhatsApp: *bold*, _italic_.
+    Also replaces :emoji: shortcodes with Unicode for WhatsApp.
     """
     if not text:
         return text
-    return (
+    out = (
         text.replace("**__", "*")
         .replace("__**", "*")
         .replace("**", "*")
         .replace("__", "_")
     )
+    return _discord_emoji_to_unicode(out)
 
 
 # Default first-blood Discord message template (placeholders: chal_name, user_name, team_name, emojis)
