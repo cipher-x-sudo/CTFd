@@ -20,7 +20,8 @@ from .models import (
     ContainerFlag,
     ContainerFlagAttempt,
     ContainerAuditLog,
-    ContainerConfig
+    ContainerConfig,
+    ContainerFirstBloodAnnounced,
 )
 
 # Import services
@@ -252,6 +253,10 @@ class ContainerChallengeType(BaseChallenge):
             if notification_service:
                 logger.debug("First blood for challenge %s, sending announcement.", challenge.name)
                 notification_service.notify_first_blood(user, team, challenge)
+                # Mark as announced so poller does not re-announce
+                if not ContainerFirstBloodAnnounced.query.filter_by(challenge_id=challenge.id).first():
+                    db.session.add(ContainerFirstBloodAnnounced(challenge_id=challenge.id))
+                    db.session.commit()
             else:
                 logger.warning("First blood detected but notification service not available; announcement skipped.")
         
@@ -548,6 +553,39 @@ def _initialize_default_config():
             logger.info(f"Set default config: {key}={value}")
 
 
+def _check_first_blood_announcements():
+    """
+    Poll for challenges that have solves but first blood not yet announced (like CTFd-First-Blood-Discord).
+    Announces first blood for any challenge type (standard, dynamic, container).
+    """
+    from . import notification_service as ns
+    if not ns:
+        return
+    try:
+        # All challenge IDs that have at least one solve
+        challenge_ids_with_solves = db.session.query(Solves.challenge_id).distinct().all()
+        for (cid,) in challenge_ids_with_solves:
+            if ContainerFirstBloodAnnounced.query.filter_by(challenge_id=cid).first():
+                continue
+            first_solve = (
+                Solves.query.filter_by(challenge_id=cid)
+                .order_by(Solves.date.asc())
+                .first()
+            )
+            if not first_solve or not first_solve.user or not first_solve.challenge:
+                continue
+            ns.notify_first_blood(
+                first_solve.user,
+                first_solve.team,
+                first_solve.challenge,
+            )
+            db.session.add(ContainerFirstBloodAnnounced(challenge_id=cid))
+            db.session.commit()
+            logger.info("First blood announced for challenge %s (poller).", first_solve.challenge.name)
+    except Exception as e:
+        logger.error("First blood poller error: %s", e, exc_info=True)
+
+
 def _setup_background_jobs(app):
     """
     Setup background jobs for cleanup
@@ -559,6 +597,15 @@ def _setup_background_jobs(app):
         
         scheduler = BackgroundScheduler()
         
+        # First blood poller: like CTFd-First-Blood-Discord, announce first blood for any challenge type
+        scheduler.add_job(
+            func=lambda: _run_with_app_context(app, _check_first_blood_announcements),
+            trigger="interval",
+            seconds=30,
+            id="first_blood_announcements",
+        )
+        logger.info("Scheduled: first_blood_announcements (every 30 seconds)")
+
         # Cleanup expired instances every 1 minute
         if container_service:
             scheduler.add_job(
