@@ -247,6 +247,58 @@
 				</small>
 			</div>
 			<div class="form-group">
+				<label for="container_first_blood_poll_period">Poll period (seconds)</label>
+				<input class="form-control" type="number" name="container_first_blood_poll_period"
+					id="container_first_blood_poll_period" min="1" max="300" value="{{ settings.container_first_blood_poll_period }}">
+				<small class="form-text text-muted">
+					How often to check for new first bloods (reference: 5). Only used by the background poller.
+				</small>
+			</div>
+			<div class="form-group">
+				<div class="form-check">
+					<input class="form-check-input" type="checkbox" name="container_announce_all_solves"
+						id="container_announce_all_solves" value="true"
+						{{ 'checked' if (settings.container_announce_all_solves or '')|lower == 'true' else '' }}>
+					<label class="form-check-label" for="container_announce_all_solves">
+						<strong>Announce all solves</strong> (not just first blood)
+					</label>
+				</div>
+			</div>
+			<div class="form-group">
+				<label for="container_solve_webhook_url">Solve webhook URL (for all solves)</label>
+				<input class="form-control" type="text" name="container_solve_webhook_url"
+					id="container_solve_webhook_url" placeholder="https://discord.com/api/webhooks/..."
+					value="{{ settings.container_solve_webhook_url }}">
+				<small class="form-text text-muted">
+					Discord webhook for non–first-blood solves. Leave empty to use main webhook.
+				</small>
+			</div>
+			<div class="form-group">
+				<label for="container_solve_message">Solve message template</label>
+				<textarea class="form-control" name="container_solve_message" id="container_solve_message"
+					rows="2">{{ settings.container_solve_message }}</textarea>
+				<small class="form-text text-muted">
+					Placeholders: <code>{chal_name}</code>, <code>{user_name}</code>, <code>{team_name}</code>, <code>{emojis}</code>.
+				</small>
+			</div>
+			<div class="form-group">
+				<label for="container_category_emojis">Category emojis (JSON)</label>
+				<textarea class="form-control font-monospace" name="container_category_emojis" id="container_category_emojis"
+					rows="4">{{ settings.container_category_emojis }}</textarea>
+				<small class="form-text text-muted">
+					Map category (lowercase) to list of emoji strings, e.g. <code>{"web": [":globe_with_meridians:"], "pwn": [":bug:"]}</code>. One is picked at random for {emojis}.
+				</small>
+			</div>
+			<div class="form-group">
+				<label for="container_announcer_url">Announcer URL (optional)</label>
+				<input class="form-control" type="text" name="container_announcer_url"
+					id="container_announcer_url" placeholder="https://..."
+					value="{{ settings.container_announcer_url }}">
+				<small class="form-text text-muted">
+					If set, POST /api/blood or /api/solves and /api/leaderboard (reference-style).
+				</small>
+			</div>
+			<div class="form-group">
 				<button type="button" class="btn btn-outline-primary btn-sm" onclick="testFirstBlood()">
 					<i class="fas fa-vial"></i> Test First Blood
 				</button>
@@ -510,6 +562,9 @@
 		}
 		if (!document.getElementById('container_first_blood_enabled').checked) {
 			formData.append('container_first_blood_enabled', 'false');
+		}
+		if (!document.getElementById('container_announce_all_solves').checked) {
+			formData.append('container_announce_all_solves', 'false');
 		}
 
 		const data = Object.fromEntries(formData);

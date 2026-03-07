@@ -9,7 +9,11 @@ from ..models.challenge import ContainerChallenge
 from ..models.flag import ContainerFlagAttempt
 from ..models.audit import ContainerAuditLog
 from ..models.config import ContainerConfig
-from ..services.notification_service import DEFAULT_FIRST_BLOOD_MESSAGE
+from ..services.notification_service import (
+    DEFAULT_FIRST_BLOOD_MESSAGE,
+    DEFAULT_SOLVE_MESSAGE,
+    DEFAULT_CATEGORY_EMOJIS_JSON,
+)
 from CTFd.utils.security.auth import generate_nonce
 
 admin_bp = Blueprint('containers_admin', __name__, url_prefix='/admin/containers')
@@ -181,6 +185,17 @@ def settings():
         'container_first_blood_message': ContainerConfig.get(
             'container_first_blood_message', DEFAULT_FIRST_BLOOD_MESSAGE
         ),
+        # First Blood (reference-style): poll period, all solves, solve webhook/template, category emojis, announcer
+        'container_first_blood_poll_period': ContainerConfig.get('container_first_blood_poll_period', '5'),
+        'container_solve_webhook_url': ContainerConfig.get('container_solve_webhook_url', ''),
+        'container_announce_all_solves': ContainerConfig.get('container_announce_all_solves', 'false'),
+        'container_solve_message': ContainerConfig.get(
+            'container_solve_message', DEFAULT_SOLVE_MESSAGE
+        ),
+        'container_category_emojis': ContainerConfig.get(
+            'container_category_emojis', DEFAULT_CATEGORY_EMOJIS_JSON
+        ),
+        'container_announcer_url': ContainerConfig.get('container_announcer_url', ''),
         # WaSender
         'wasender_api_key': ContainerConfig.get('wasender_api_key', ''),
         'wasender_group_id': ContainerConfig.get('wasender_group_id', ''),

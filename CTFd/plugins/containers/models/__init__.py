@@ -10,6 +10,7 @@ from .flag import ContainerFlag, ContainerFlagAttempt
 from .audit import ContainerAuditLog
 from .config import ContainerConfig
 from .first_blood import ContainerFirstBloodAnnounced
+from .announced_solves import ContainerAnnouncedSolve
 
 __all__ = [
     'ContainerChallenge',
@@ -19,4 +20,5 @@ __all__ = [
     'ContainerAuditLog',
     'ContainerConfig',
     'ContainerFirstBloodAnnounced',
+    'ContainerAnnouncedSolve',
 ]

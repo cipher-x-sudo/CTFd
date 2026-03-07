@@ -22,6 +22,7 @@ from .models import (
     ContainerAuditLog,
     ContainerConfig,
     ContainerFirstBloodAnnounced,
+    ContainerAnnouncedSolve,
 )
 
 # Import services
@@ -253,9 +254,9 @@ class ContainerChallengeType(BaseChallenge):
             if notification_service:
                 logger.debug("First blood for challenge %s, sending announcement.", challenge.name)
                 notification_service.notify_first_blood(user, team, challenge)
-                # Mark as announced so poller does not re-announce
-                if not ContainerFirstBloodAnnounced.query.filter_by(challenge_id=challenge.id).first():
-                    db.session.add(ContainerFirstBloodAnnounced(challenge_id=challenge.id))
+                account_id = team.id if (get_config('user_mode') == 'teams' and team) else user.id
+                if not ContainerAnnouncedSolve.query.filter_by(challenge_id=challenge.id, account_id=account_id).first():
+                    db.session.add(ContainerAnnouncedSolve(challenge_id=challenge.id, account_id=account_id))
                     db.session.commit()
             else:
                 logger.warning("First blood detected but notification service not available; announcement skipped.")
@@ -426,6 +427,9 @@ def load(app: Flask):
     
     # Create database tables
     app.db.create_all()
+
+    # Backfill container_announced_solves from existing Solves so we don't announce old first bloods/solves
+    _backfill_announced_solves()
     
     # Initialize default config
     _initialize_default_config()
@@ -553,35 +557,88 @@ def _initialize_default_config():
             logger.info(f"Set default config: {key}={value}")
 
 
+def _backfill_announced_solves():
+    """
+    One-time backfill: insert all current (challenge_id, account_id) from Solves into container_announced_solves
+    without sending announcements (reference: handle_past_solves).
+    Also migrates existing ContainerFirstBloodAnnounced into ContainerAnnouncedSolve (first solver per challenge).
+    """
+    try:
+        for fb in ContainerFirstBloodAnnounced.query.all():
+            first_solve = (
+                Solves.query.filter_by(challenge_id=fb.challenge_id)
+                .order_by(Solves.date.asc())
+                .first()
+            )
+            if first_solve and first_solve.account_id is not None:
+                if not ContainerAnnouncedSolve.query.filter_by(
+                    challenge_id=fb.challenge_id,
+                    account_id=first_solve.account_id,
+                ).first():
+                    db.session.add(ContainerAnnouncedSolve(challenge_id=fb.challenge_id, account_id=first_solve.account_id))
+        for solve in Solves.query.all():
+            if not solve.challenge_id or solve.account_id is None:
+                continue
+            if ContainerAnnouncedSolve.query.filter_by(
+                challenge_id=solve.challenge_id,
+                account_id=solve.account_id,
+            ).first():
+                continue
+            db.session.add(ContainerAnnouncedSolve(challenge_id=solve.challenge_id, account_id=solve.account_id))
+        db.session.commit()
+        logger.info("Backfilled container_announced_solves from existing Solves.")
+    except Exception as e:
+        logger.warning("Backfill container_announced_solves failed: %s", e)
+        db.session.rollback()
+
+
 def _check_first_blood_announcements():
     """
-    Poll for challenges that have solves but first blood not yet announced (like CTFd-First-Blood-Discord).
-    Announces first blood for any challenge type (standard, dynamic, container).
+    Poll for first blood and optional all-solves (reference: SolveHandler.handle_solves).
+    Uses container_announced_solves (challenge_id, account_id). First blood = no row for challenge_id.
     """
     from . import notification_service as ns
     if not ns:
         return
     try:
-        # All challenge IDs that have at least one solve
+        announce_all = (ContainerConfig.get('container_announce_all_solves', '') or '').strip().lower() == 'true'
         challenge_ids_with_solves = db.session.query(Solves.challenge_id).distinct().all()
         for (cid,) in challenge_ids_with_solves:
-            if ContainerFirstBloodAnnounced.query.filter_by(challenge_id=cid).first():
-                continue
-            first_solve = (
-                Solves.query.filter_by(challenge_id=cid)
-                .order_by(Solves.date.asc())
-                .first()
-            )
-            if not first_solve or not first_solve.user or not first_solve.challenge:
-                continue
-            ns.notify_first_blood(
-                first_solve.user,
-                first_solve.team,
-                first_solve.challenge,
-            )
-            db.session.add(ContainerFirstBloodAnnounced(challenge_id=cid))
-            db.session.commit()
-            logger.info("First blood announced for challenge %s (poller).", first_solve.challenge.name)
+            announced_for_chal = ContainerAnnouncedSolve.query.filter_by(challenge_id=cid).all()
+            announced_account_ids = {r.account_id for r in announced_for_chal}
+
+            if not announced_for_chal:
+                first_solve = (
+                    Solves.query.filter_by(challenge_id=cid)
+                    .order_by(Solves.date.asc())
+                    .first()
+                )
+                if first_solve and first_solve.user and first_solve.challenge:
+                    ns.notify_first_blood(
+                        first_solve.user,
+                        first_solve.team,
+                        first_solve.challenge,
+                    )
+                    acc_id = first_solve.account_id
+                    if not ContainerAnnouncedSolve.query.filter_by(challenge_id=cid, account_id=acc_id).first():
+                        db.session.add(ContainerAnnouncedSolve(challenge_id=cid, account_id=acc_id))
+                        db.session.commit()
+                    announced_account_ids.add(acc_id)
+                    logger.info("First blood announced for challenge %s (poller).", first_solve.challenge.name)
+
+            if announce_all:
+                solves_for_chal = Solves.query.filter_by(challenge_id=cid).order_by(Solves.date.asc()).all()
+                for solve in solves_for_chal:
+                    acc_id = solve.account_id
+                    if acc_id in announced_account_ids:
+                        continue
+                    if not solve.user or not solve.challenge:
+                        continue
+                    ns.announce_solve(solve.user, solve.team, solve.challenge)
+                    if not ContainerAnnouncedSolve.query.filter_by(challenge_id=cid, account_id=acc_id).first():
+                        db.session.add(ContainerAnnouncedSolve(challenge_id=cid, account_id=acc_id))
+                        db.session.commit()
+                    announced_account_ids.add(acc_id)
     except Exception as e:
         logger.error("First blood poller error: %s", e, exc_info=True)
 
@@ -597,14 +654,19 @@ def _setup_background_jobs(app):
         
         scheduler = BackgroundScheduler()
         
-        # First blood poller: like CTFd-First-Blood-Discord, announce first blood for any challenge type
+        # First blood poller: like CTFd-First-Blood-Discord (POLL_PERIOD from config)
+        poll_period = 30
+        try:
+            poll_period = max(1, int(ContainerConfig.get('container_first_blood_poll_period', '5') or 5))
+        except (TypeError, ValueError):
+            pass
         scheduler.add_job(
             func=lambda: _run_with_app_context(app, _check_first_blood_announcements),
             trigger="interval",
-            seconds=30,
+            seconds=poll_period,
             id="first_blood_announcements",
         )
-        logger.info("Scheduled: first_blood_announcements (every 30 seconds)")
+        logger.info("Scheduled: first_blood_announcements (every %s seconds)", poll_period)
 
         # Cleanup expired instances every 1 minute
         if container_service:

@@ -1,3 +1,5 @@
+import json
+import random
 import requests
 import logging
 from CTFd.models import db
@@ -5,10 +7,36 @@ from ..models.config import ContainerConfig
 
 logger = logging.getLogger(__name__)
 
-# Default first-blood Discord message template (placeholders: chal_name, user_name, team_name)
+
+def _get_category_emojis():
+    """Parse container_category_emojis JSON; return dict category -> list of emoji strings."""
+    raw = ContainerConfig.get('container_category_emojis', '') or DEFAULT_CATEGORY_EMOJIS_JSON
+    try:
+        return json.loads(raw.strip() or '{}')
+    except (json.JSONDecodeError, TypeError):
+        return json.loads(DEFAULT_CATEGORY_EMOJIS_JSON)
+
+
+def _get_emoji_for_category(category):
+    """Return one random emoji string for category (lowercase), or empty string."""
+    if not category:
+        return ""
+    emojis_map = _get_category_emojis()
+    choices = emojis_map.get((category or "").strip().lower(), [])
+    return random.choice(choices) if choices else ""
+
+# Default first-blood Discord message template (placeholders: chal_name, user_name, team_name, emojis)
 DEFAULT_FIRST_BLOOD_MESSAGE = (
     ":knife::drop_of_blood: First Blood for challenge **{chal_name}** "
-    "goes to **{user_name}** of team **__{team_name}__**!"
+    "goes to **{user_name}** of team **__{team_name}__**! {emojis}"
+)
+# Default solve (non-first-blood) message template
+DEFAULT_SOLVE_MESSAGE = "**{user_name}** of **__{team_name}__** just solved **{chal_name}**! {emojis}"
+# Default category emojis JSON (reference: config.CATEGORY_EMOJIS)
+DEFAULT_CATEGORY_EMOJIS_JSON = (
+    '{"web": [":globe_with_meridians:"], "crypto": [":sob::closed_lock_with_key:"], '
+    '"pwn": [":bug:"], "rev": [":rewind:"], "forensics": [":mag:"], "osint": [":detective:"], '
+    '"blockchain": [":white_large_square::chains:"], "misc": [":jigsaw:"]}'
 )
 
 
@@ -200,11 +228,41 @@ class NotificationService:
             fields=fields
         )
 
-    def notify_first_blood(self, user, team, challenge):
+    def _post_announcer_and_leaderboard(self, first_blood, chal_name, user_name, team_name, chal_id, category, points):
+        """If container_announcer_url set: POST /api/blood or /api/solves, then POST /api/leaderboard with top 10."""
+        announcer_url = (ContainerConfig.get('container_announcer_url', '') or '').strip().rstrip('/')
+        if not announcer_url:
+            return
+        try:
+            ep = 'blood' if first_blood else 'solves'
+            requests.post(
+                f"{announcer_url}/api/{ep}",
+                json={
+                    "points": points or 0,
+                    "category": category or "",
+                    "chal_name": chal_name,
+                    "team_name": team_name,
+                    "solved_by": user_name,
+                    "first_blood": first_blood,
+                },
+                timeout=5,
+            )
+            from CTFd.utils.scores import get_standings
+            standings = get_standings(count=10)
+            teams = [
+                {"name": row.name, "points": int(row.score), "position": pos}
+                for pos, row in enumerate(standings, 1)
+            ]
+            requests.post(f"{announcer_url}/api/leaderboard", json=teams, timeout=5)
+        except Exception as e:
+            logger.warning("Announcer URL request failed: %s", e)
+
+    def notify_first_blood(self, user, team, challenge, emojis=None):
         """
         Send first-blood announcement to Discord (content-only message).
         Uses container_first_blood_webhook_url if set, else container_discord_webhook_url.
-        Message template and enable flag are read from ContainerConfig (GUI).
+        Message template supports {chal_name}, {user_name}, {team_name}, {emojis}.
+        Optionally POSTs to container_announcer_url /api/blood and /api/leaderboard.
         """
         enabled = (ContainerConfig.get('container_first_blood_enabled', '') or '').strip().lower() == 'true'
         if not enabled:
@@ -226,18 +284,26 @@ class NotificationService:
         user_name = user.name if user else "Unknown"
         team_name = team.name if team else (user.name if user else "Solo")
         chal_name = challenge.name if challenge else "Unknown"
+        if emojis is None and challenge:
+            emojis = _get_emoji_for_category(getattr(challenge, 'category', None))
+        emojis = emojis or ""
+        points = getattr(challenge, 'value', 0) if challenge else 0
+        category = getattr(challenge, 'category', None) if challenge else None
+        chal_id = getattr(challenge, 'id', 0) if challenge else 0
         try:
             message = template.format(
                 chal_name=chal_name,
                 user_name=user_name,
                 team_name=team_name,
+                emojis=emojis,
             )
         except KeyError as e:
-            logger.warning(f"First-blood template has invalid placeholder: {e}")
+            logger.warning("First-blood template has invalid placeholder: %s", e)
             message = DEFAULT_FIRST_BLOOD_MESSAGE.format(
                 chal_name=chal_name,
                 user_name=user_name,
                 team_name=team_name,
+                emojis=emojis,
             )
 
         discord_ok = False
@@ -261,7 +327,73 @@ class NotificationService:
         except Exception as e:
             logger.error("Failed to send first-blood WhatsApp notification: %s", e)
 
+        self._post_announcer_and_leaderboard(
+            first_blood=True,
+            chal_name=chal_name,
+            user_name=user_name,
+            team_name=team_name,
+            chal_id=chal_id,
+            category=category,
+            points=points,
+        )
         return discord_ok
+
+    def announce_solve(self, user, team, challenge):
+        """
+        Announce a non-first-blood solve (reference: SOLVE_WEBHOOK_URL, SOLVE_ANNOUNCE_STRING).
+        Uses container_solve_webhook_url or main Discord webhook. Optionally announcer URL + leaderboard.
+        """
+        webhook_url = (
+            ContainerConfig.get('container_solve_webhook_url', '').strip()
+            or self._get_webhook_url()
+        )
+        if not webhook_url:
+            return False
+        template = (
+            ContainerConfig.get('container_solve_message', '').strip()
+            or DEFAULT_SOLVE_MESSAGE
+        )
+        user_name = user.name if user else "Unknown"
+        team_name = team.name if team else (user.name if user else "Solo")
+        chal_name = challenge.name if challenge else "Unknown"
+        emojis = _get_emoji_for_category(getattr(challenge, 'category', None) if challenge else None) or ""
+        points = getattr(challenge, 'value', 0) if challenge else 0
+        category = getattr(challenge, 'category', None) if challenge else None
+        chal_id = getattr(challenge, 'id', 0) if challenge else 0
+        try:
+            message = template.format(
+                chal_name=chal_name,
+                user_name=user_name,
+                team_name=team_name,
+                emojis=emojis,
+            )
+        except KeyError:
+            message = DEFAULT_SOLVE_MESSAGE.format(
+                chal_name=chal_name,
+                user_name=user_name,
+                team_name=team_name,
+                emojis=emojis,
+            )
+        try:
+            response = requests.post(webhook_url, json={"content": message}, timeout=5)
+            ok = response.status_code in (200, 204)
+        except Exception as e:
+            logger.error("Failed to send solve Discord notification: %s", e)
+            ok = False
+        try:
+            self._send_whatsapp(message, image_url="", audio_url="")
+        except Exception as e:
+            logger.error("Failed to send solve WhatsApp notification: %s", e)
+        self._post_announcer_and_leaderboard(
+            first_blood=False,
+            chal_name=chal_name,
+            user_name=user_name,
+            team_name=team_name,
+            chal_id=chal_id,
+            category=category,
+            points=points,
+        )
+        return ok
 
     def send_demo_first_blood(self):
         """
