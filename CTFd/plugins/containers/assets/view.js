@@ -84,46 +84,33 @@ function hideChallengeUpdate() {
     if (terminateBtn) terminateBtn.classList.add('d-none');
 }
 
-// Rate limit cooldown: clear deployment area, show message + countdown, disable buttons for retry_after_seconds
+// Rate limit cooldown: show countdown on the specific button that was rate-limited
 var _containerInfoCooldownUntil = 0;
 
-function showRateLimitCooldown(alert, retryAfterSeconds, buttonIds, message, onComplete) {
-    if (!alert) alert = document.getElementById("deployment-info");
-    if (!alert) return;
-    retryAfterSeconds = Math.max(1, parseInt(retryAfterSeconds, 10) || 60);
-    buttonIds = buttonIds || [];
-    message = message || "Too many requests. Try again in a minute.";
+function showButtonCooldown(buttonId, originalText, seconds, onComplete) {
+    var btn = document.getElementById(buttonId);
+    if (!btn) return;
+    btn.disabled = true;
+    seconds = Math.max(1, parseInt(seconds, 10) || 60);
+    var originalHTML = btn.innerHTML;
 
-    alert.innerHTML = "";
-    alert.classList.remove("alert-danger");
-    alert.classList.add("alert-warning");
-    var msgSpan = document.createElement("span");
-    msgSpan.textContent = message + " Try again in ";
-    var countEl = document.createElement("span");
-    countEl.setAttribute("id", "container-ratelimit-countdown");
-    countEl.textContent = retryAfterSeconds;
-    var suffix = document.createElement("span");
-    suffix.textContent = "s.";
-    alert.appendChild(msgSpan);
-    alert.appendChild(countEl);
-    alert.appendChild(suffix);
-
-    buttonIds.forEach(function (id) {
-        var btn = document.getElementById(id);
-        if (btn) btn.disabled = true;
-    });
-
-    var remaining = retryAfterSeconds;
+    function updateButtonText(sec) {
+        var small = btn.querySelector("small");
+        if (small) {
+            btn.innerHTML = "<small style=\"color: white\">" + originalText + " (" + sec + "s)</small>";
+        } else {
+            btn.textContent = originalText + " (" + sec + "s)";
+        }
+    }
+    updateButtonText(seconds);
+    var remaining = seconds;
     var intervalId = setInterval(function () {
         remaining--;
-        var el = document.getElementById("container-ratelimit-countdown");
-        if (el) el.textContent = remaining;
+        updateButtonText(remaining);
         if (remaining <= 0) {
             clearInterval(intervalId);
-            buttonIds.forEach(function (id) {
-                var btn = document.getElementById(id);
-                if (btn) btn.disabled = false;
-            });
+            btn.disabled = false;
+            btn.innerHTML = originalHTML;
             if (typeof onComplete === "function") onComplete();
         }
     }, 1000);
@@ -227,11 +214,26 @@ function view_container_info(challenge_id) {
             if (error && error.status === 429) {
                 var sec = error.retry_after_seconds != null ? error.retry_after_seconds : 60;
                 _containerInfoCooldownUntil = Date.now() + sec * 1000;
-                showRateLimitCooldown(alert, sec, [], error.message, function () {
-                    _containerInfoCooldownUntil = 0;
-                });
-                hideChallengeUpdate();
-                toggleChallengeCreate();
+                // Show small notice (alert was already cleared by resetAlert); do NOT hide buttons
+                alert.classList.remove("alert-danger");
+                alert.classList.add("alert-warning");
+                var countEl = document.createElement("span");
+                countEl.setAttribute("id", "container-info-ratelimit-countdown");
+                alert.innerHTML = "";
+                alert.appendChild(document.createTextNode("Too many requests. Try again in "));
+                alert.appendChild(countEl);
+                alert.appendChild(document.createTextNode("s."));
+                countEl.textContent = sec;
+                var remaining = sec;
+                var intervalId = setInterval(function () {
+                    remaining--;
+                    var el = document.getElementById("container-info-ratelimit-countdown");
+                    if (el) el.textContent = remaining;
+                    if (remaining <= 0) {
+                        clearInterval(intervalId);
+                        _containerInfoCooldownUntil = 0;
+                    }
+                }, 1000);
             } else {
                 console.error("[Container] Fetch error:", error);
                 alert.innerHTML = "Error fetching container info.";
@@ -287,8 +289,10 @@ function container_request(challenge_id) {
         .catch(error => {
             if (error && error.status === 429) {
                 var sec = error.retry_after_seconds != null ? error.retry_after_seconds : 60;
-                showRateLimitCooldown(alert, sec, ["create-chal"], error.message);
-                hideChallengeCreate();
+                alert.classList.remove("alert-danger");
+                alert.classList.add("alert-warning");
+                alert.textContent = (error.message || "Too many requests. Try again in a minute.") + " ";
+                showButtonCooldown("create-chal", "Fetch Instance", sec);
             } else {
                 console.error("[Container] Request error:", error);
                 alert.innerHTML = "Error requesting container.";
@@ -336,7 +340,10 @@ function container_renew(challenge_id) {
         .catch(error => {
             if (error && error.status === 429) {
                 var sec = error.retry_after_seconds != null ? error.retry_after_seconds : 60;
-                showRateLimitCooldown(alert, sec, ["extend-chal"], error.message);
+                showButtonCooldown("extend-chal", "Extend Time", sec);
+                // Restore deployment-info to previous state (spinner was shown; show connection hint or leave as-is)
+                alert.innerHTML = "";
+                alert.classList.remove("alert-danger", "alert-warning");
             } else {
                 alert.innerHTML = "Error renewing container.";
                 alert.classList.add("alert-danger");
@@ -384,9 +391,9 @@ function container_stop(challenge_id) {
         .catch(error => {
             if (error && error.status === 429) {
                 var sec = error.retry_after_seconds != null ? error.retry_after_seconds : 60;
-                showRateLimitCooldown(alert, sec, ["terminate-chal"], error.message);
-                hideChallengeUpdate();
-                toggleChallengeCreate();
+                showButtonCooldown("terminate-chal", "Terminate", sec);
+                alert.innerHTML = "";
+                alert.classList.remove("alert-danger", "alert-warning");
             } else {
                 console.error("[Container] Stop error:", error);
                 alert.innerHTML = "Error stopping container.";
