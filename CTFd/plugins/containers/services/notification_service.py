@@ -239,12 +239,11 @@ class NotificationService:
             except Exception as e:
                 logger.error(f"Failed to send Discord notification: {e}")
 
-        # Fire WaSender (fire-and-forget, don't let it block/fail the caller)
-        # Use configured image and audio so ban/cheat alerts send audio to WhatsApp
+        # Fire WaSender: send ban message first (text only), then audio
         try:
             wa_text = self._build_wa_text(title, message, fields)
-            _, _, wa_image_url, wa_audio_url = self._get_wa_config()
-            self._send_whatsapp(wa_text, image_url=wa_image_url, audio_url=wa_audio_url)
+            _, _, _, wa_audio_url = self._get_wa_config()
+            self._send_whatsapp(wa_text, image_url="", audio_url=wa_audio_url)
         except Exception as e:
             logger.error(f"WaSender alert failed: {e}")
 
@@ -527,7 +526,7 @@ class NotificationService:
         )
 
     def send_wa_demo_cheat(self, api_key=None, group_id=None):
-        """Send a demo cheat alert to WhatsApp."""
+        """Send a demo cheat alert to WhatsApp. Message first, then audio (same as real ban)."""
         fields = [
             {"name": "User", "value": "demo_hacker"},
             {"name": "Challenge", "value": "Demo Challenge"},
@@ -539,8 +538,9 @@ class NotificationService:
             "This is a DEMO alert. No actual banning occurred.",
             fields,
         )
+        _, _, _, wa_audio_url = self._get_wa_config()
         return self._send_whatsapp(text, api_key=api_key, group_id=group_id,
-                                   image_url="", audio_url="")
+                                   image_url="", audio_url=wa_audio_url)
 
     def send_wa_demo_error(self, api_key=None, group_id=None):
         """Send a demo error alert to WhatsApp."""
