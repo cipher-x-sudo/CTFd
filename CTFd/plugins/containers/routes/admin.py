@@ -9,6 +9,7 @@ from ..models.challenge import ContainerChallenge
 from ..models.flag import ContainerFlagAttempt
 from ..models.audit import ContainerAuditLog
 from ..models.config import ContainerConfig
+from ..models.rate_limit_log import ContainerRateLimitLog
 from ..services.notification_service import (
     DEFAULT_FIRST_BLOOD_MESSAGE,
     DEFAULT_SOLVE_MESSAGE,
@@ -272,6 +273,47 @@ def cheats():
                          active_page='cheats')
 
 
+@admin_bp.route('/rate-limit-logs')
+@admins_only
+def rate_limit_logs():
+    """Rate limit logs: list of 429 events with option to clear rate limit per account"""
+    from CTFd.models import Users, Teams
+    from CTFd.utils import get_config
+
+    rate_limit_logs_list = (
+        ContainerRateLimitLog.query
+        .order_by(ContainerRateLimitLog.timestamp.desc())
+        .limit(500)
+        .all()
+    )
+
+    for log in rate_limit_logs_list:
+        log.account_user = None
+        log.account_team = None
+        if log.account_key.startswith("user_"):
+            try:
+                uid = int(log.account_key[5:])
+                log.account_user = Users.query.get(uid)
+            except (ValueError, TypeError):
+                pass
+        elif log.account_key.startswith("team_"):
+            try:
+                tid = int(log.account_key[5:])
+                log.account_team = Teams.query.get(tid)
+            except (ValueError, TypeError):
+                pass
+
+    connected, docker_info = _get_docker_status()
+    is_teams_mode = get_config('user_mode') == 'teams'
+
+    return render_template('container_rate_limit_logs.html',
+                         rate_limit_logs=rate_limit_logs_list,
+                         connected=connected,
+                         docker_info=docker_info,
+                         is_teams_mode=is_teams_mode,
+                         active_page='rate_limit_logs')
+
+
 # ============================================================================
 # Admin APIs
 # ============================================================================
@@ -510,6 +552,36 @@ def team_unban(team_id):
         'team_id': team_id,
         'members_unbanned': len(members)
     })
+
+
+@admin_bp.route('/api/rate-limit/clear', methods=['POST'], endpoint='api_rate_limit_clear')
+@admins_only
+def api_rate_limit_clear():
+    """
+    Clear rate limit state for an account so they can make requests again.
+    Deletes cache keys for all four actions (request, info, renew, stop).
+    They will be rate limited again if they exceed the configured limits.
+    Body: { "account_key": "user_123" } or { "account_key": "team_456" }
+    """
+    from CTFd.cache import cache
+    from ..ratelimit import KEY_PREFIX, RATE_LIMIT_ACTIONS
+
+    try:
+        data = request.get_json() or {}
+        account_key = data.get('account_key')
+        if not account_key or not isinstance(account_key, str):
+            return jsonify({'success': False, 'error': 'account_key is required'}), 400
+        account_key = account_key.strip()
+        if not account_key:
+            return jsonify({'success': False, 'error': 'account_key is required'}), 400
+
+        for action in RATE_LIMIT_ACTIONS:
+            key = "{}:{}:{}".format(KEY_PREFIX, action, account_key)
+            cache.delete(key)
+
+        return jsonify({'success': True})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
 
 
 @admin_bp.route('/api/cheats', methods=['GET'], endpoint='api_cheats')

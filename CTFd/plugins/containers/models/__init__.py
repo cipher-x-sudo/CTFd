@@ -11,6 +11,7 @@ from .audit import ContainerAuditLog
 from .config import ContainerConfig
 from .first_blood import ContainerFirstBloodAnnounced
 from .announced_solves import ContainerAnnouncedSolve
+from .rate_limit_log import ContainerRateLimitLog
 
 __all__ = [
     'ContainerChallenge',
@@ -21,4 +22,5 @@ __all__ = [
     'ContainerConfig',
     'ContainerFirstBloodAnnounced',
     'ContainerAnnouncedSolve',
+    'ContainerRateLimitLog',
 ]

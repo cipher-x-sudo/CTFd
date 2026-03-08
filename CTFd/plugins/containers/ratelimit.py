@@ -19,6 +19,9 @@ DEFAULT_LIMITS = {
 
 KEY_PREFIX = "rl_containers"
 
+# All actions that have rate limit keys (used for clear API)
+RATE_LIMIT_ACTIONS = ("request", "info", "renew", "stop")
+
 
 def _get_account_id():
     """Get account ID (user or team) for rate limit key. Must run after auth."""
@@ -64,6 +67,25 @@ def container_ratelimit(action):
             current = cache.get(key)
 
             if current is not None and int(current) > limit - 1:
+                # Log rate limit event for admin Rate Limit Logs
+                try:
+                    from CTFd.models import db
+                    from CTFd.utils.user import get_ip
+                    from ..models.rate_limit_log import ContainerRateLimitLog
+                    from datetime import datetime
+                    log = ContainerRateLimitLog(
+                        account_key=account_id,
+                        action=action,
+                        ip_address=get_ip(),
+                        timestamp=datetime.utcnow(),
+                    )
+                    db.session.add(log)
+                    db.session.commit()
+                except Exception:
+                    try:
+                        db.session.rollback()
+                    except Exception:
+                        pass
                 resp = jsonify(
                     {
                         "code": 429,
