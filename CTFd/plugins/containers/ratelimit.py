@@ -37,7 +37,7 @@ def _get_account_id():
 
 def _get_limit_interval(action):
     """Get (limit, interval) for action from ContainerConfig or defaults."""
-    from ..models.config import ContainerConfig
+    from .models.config import ContainerConfig
 
     default_limit, default_interval = DEFAULT_LIMITS.get(action, (10, 60))
     limit = int(ContainerConfig.get(f"container_ratelimit_{action}_limit", default_limit))
@@ -71,7 +71,7 @@ def container_ratelimit(action):
                 try:
                     from CTFd.models import db
                     from CTFd.utils.user import get_ip
-                    from ..models.rate_limit_log import ContainerRateLimitLog
+                    from .models.rate_limit_log import ContainerRateLimitLog
                     from datetime import datetime
                     log = ContainerRateLimitLog(
                         account_key=account_id,
