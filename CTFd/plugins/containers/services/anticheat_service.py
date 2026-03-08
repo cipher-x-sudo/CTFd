@@ -212,7 +212,6 @@ class AntiCheatService:
                 self.notification_service.notify_cheat(
                     user=cheater_display,
                     challenge=challenge,
-                    flag=submitted_flag,
                     owner=owner_display
                 )
 

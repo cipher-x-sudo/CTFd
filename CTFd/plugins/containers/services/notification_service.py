@@ -240,20 +240,21 @@ class NotificationService:
                 logger.error(f"Failed to send Discord notification: {e}")
 
         # Fire WaSender (fire-and-forget, don't let it block/fail the caller)
+        # Use configured image and audio so ban/cheat alerts send audio to WhatsApp
         try:
             wa_text = self._build_wa_text(title, message, fields)
-            self._send_whatsapp(wa_text)
+            _, _, wa_image_url, wa_audio_url = self._get_wa_config()
+            self._send_whatsapp(wa_text, image_url=wa_image_url, audio_url=wa_audio_url)
         except Exception as e:
             logger.error(f"WaSender alert failed: {e}")
 
         return discord_ok
 
-    def notify_cheat(self, user, challenge, flag, owner):
+    def notify_cheat(self, user, challenge, owner):
         """Send cheat detection alert"""
         fields = [
             {"name": "User", "value": user.name if user else "Unknown", "inline": True},
             {"name": "Challenge", "value": challenge.name if challenge else "Unknown", "inline": True},
-            {"name": "Flag Submitted", "value": f"`{flag}`", "inline": False},
             {"name": "Original Owner", "value": owner.name if owner else "Unknown", "inline": True},
             {"name": "Action Taken", "value": "User & Owner Banned", "inline": False}
         ]
@@ -477,7 +478,6 @@ class NotificationService:
         fields = [
             {"name": "User", "value": "demo_hacker", "inline": True},
             {"name": "Challenge", "value": "Demo Challenge", "inline": True},
-            {"name": "Flag Submitted", "value": "`CTF{demo_flag_hash}`", "inline": False},
             {"name": "Original Owner", "value": "innocent_victim", "inline": True},
             {"name": "Action Taken", "value": "User & Owner Banned", "inline": False}
         ]
@@ -531,7 +531,6 @@ class NotificationService:
         fields = [
             {"name": "User", "value": "demo_hacker"},
             {"name": "Challenge", "value": "Demo Challenge"},
-            {"name": "Flag Submitted", "value": "CTF{demo_flag_hash}"},
             {"name": "Original Owner", "value": "innocent_victim"},
             {"name": "Action Taken", "value": "User & Owner Banned"},
         ]
