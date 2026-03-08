@@ -191,6 +191,7 @@ def settings():
         'container_ratelimit_stop_limit': ContainerConfig.get('container_ratelimit_stop_limit', '10'),
         'container_ratelimit_stop_interval': ContainerConfig.get('container_ratelimit_stop_interval', '60'),
         'container_discord_webhook_url': ContainerConfig.get('container_discord_webhook_url', ''),
+        'container_error_webhook_url': ContainerConfig.get('container_error_webhook_url', ''),
         # First Blood Discord
         'container_first_blood_enabled': ContainerConfig.get('container_first_blood_enabled', 'false'),
         'container_first_blood_webhook_url': ContainerConfig.get('container_first_blood_webhook_url', ''),

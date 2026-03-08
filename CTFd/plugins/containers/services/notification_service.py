@@ -92,6 +92,11 @@ class NotificationService:
     def _get_webhook_url(self):
         return ContainerConfig.get('container_discord_webhook_url', '')
 
+    def _get_error_webhook_url(self):
+        """Webhook for ⚠️ Container Plugin Error alerts. Uses dedicated URL if set, else main webhook."""
+        url = (ContainerConfig.get('container_error_webhook_url', '') or '').strip()
+        return url or self._get_webhook_url()
+
     # -------------------------------------------------------------------------
     # WaSender helpers
     # -------------------------------------------------------------------------
@@ -206,7 +211,7 @@ class NotificationService:
     # Discord helpers
     # -------------------------------------------------------------------------
 
-    def send_alert(self, title, message, color=0xff0000, fields=None):
+    def send_alert(self, title, message, color=0xff0000, fields=None, webhook_url=None):
         """
         Send an alert to Discord and WaSender.
 
@@ -215,8 +220,9 @@ class NotificationService:
             message: Embed description
             color: Hex color integer (default red)
             fields: List of dicts {'name': str, 'value': str, 'inline': bool}
+            webhook_url: Optional Discord webhook URL; if None, uses main webhook.
         """
-        webhook_url = self._get_webhook_url()
+        webhook_url = webhook_url or self._get_webhook_url()
         discord_ok = False
         if webhook_url:
             try:
@@ -260,17 +266,17 @@ class NotificationService:
         )
 
     def notify_error(self, operation, error_msg):
-        """Send system error alert"""
+        """Send system error alert to the error webhook (or main webhook if no error webhook set)."""
         fields = [
             {"name": "Operation", "value": operation, "inline": True},
             {"name": "Error", "value": f"```{error_msg}```", "inline": False}
         ]
-        
         return self.send_alert(
             title="⚠️ Container Plugin Error",
             message="An error occurred in the container system.",
-            color=0xffa500, # Orange
-            fields=fields
+            color=0xffa500,  # Orange
+            fields=fields,
+            webhook_url=self._get_error_webhook_url(),
         )
 
     def _post_announcer_and_leaderboard(self, first_blood, chal_name, user_name, team_name, chal_id, category, points):
@@ -484,8 +490,8 @@ class NotificationService:
         )
 
     def send_demo_error(self, webhook_url=None):
-        """Send a demo error alert (Discord only)"""
-        url_to_use = webhook_url or self._get_webhook_url()
+        """Send a demo error alert (Discord only). Uses error webhook if no URL given."""
+        url_to_use = webhook_url or self._get_error_webhook_url()
         fields = [
             {"name": "Operation", "value": "Container Provisioning", "inline": True},
             {"name": "Error", "value": "```DockerException: Connection refused```", "inline": False}
