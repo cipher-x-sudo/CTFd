@@ -207,11 +207,13 @@ class AntiCheatService:
 
             # Trigger Discord Notification (still notify when autoban disabled)
             if self.notification_service:
+                cheater_display = cheater_user if not is_team_mode else cheater_team
+                owner_display = owner_user if not is_team_mode else owner_team
                 self.notification_service.notify_cheat(
-                    user=cheater_user if not is_team_mode else None,
+                    user=cheater_display,
                     challenge=challenge,
                     flag=submitted_flag,
-                    owner=owner_user if not is_team_mode else None
+                    owner=owner_display
                 )
 
             # Don't reveal to user that flag reuse was detected
