@@ -91,6 +91,7 @@ def container_ratelimit(action):
                         "code": 429,
                         "message": "Too many requests. Limit is %s requests in %s seconds"
                         % (limit, interval),
+                        "retry_after_seconds": interval,
                     }
                 )
                 resp.status_code = 429

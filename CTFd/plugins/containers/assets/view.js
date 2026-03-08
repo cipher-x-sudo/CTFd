@@ -84,6 +84,51 @@ function hideChallengeUpdate() {
     if (terminateBtn) terminateBtn.classList.add('d-none');
 }
 
+// Rate limit cooldown: clear deployment area, show message + countdown, disable buttons for retry_after_seconds
+var _containerInfoCooldownUntil = 0;
+
+function showRateLimitCooldown(alert, retryAfterSeconds, buttonIds, message, onComplete) {
+    if (!alert) alert = document.getElementById("deployment-info");
+    if (!alert) return;
+    retryAfterSeconds = Math.max(1, parseInt(retryAfterSeconds, 10) || 60);
+    buttonIds = buttonIds || [];
+    message = message || "Too many requests. Try again in a minute.";
+
+    alert.innerHTML = "";
+    alert.classList.remove("alert-danger");
+    alert.classList.add("alert-warning");
+    var msgSpan = document.createElement("span");
+    msgSpan.textContent = message + " Try again in ";
+    var countEl = document.createElement("span");
+    countEl.setAttribute("id", "container-ratelimit-countdown");
+    countEl.textContent = retryAfterSeconds;
+    var suffix = document.createElement("span");
+    suffix.textContent = "s.";
+    alert.appendChild(msgSpan);
+    alert.appendChild(countEl);
+    alert.appendChild(suffix);
+
+    buttonIds.forEach(function (id) {
+        var btn = document.getElementById(id);
+        if (btn) btn.disabled = true;
+    });
+
+    var remaining = retryAfterSeconds;
+    var intervalId = setInterval(function () {
+        remaining--;
+        var el = document.getElementById("container-ratelimit-countdown");
+        if (el) el.textContent = remaining;
+        if (remaining <= 0) {
+            clearInterval(intervalId);
+            buttonIds.forEach(function (id) {
+                var btn = document.getElementById(id);
+                if (btn) btn.disabled = false;
+            });
+            if (typeof onComplete === "function") onComplete();
+        }
+    }, 1000);
+}
+
 function calculateExpiry(date) {
     return Math.ceil((new Date(date * 1000) - new Date()) / 1000 / 60);
 }
@@ -121,8 +166,19 @@ function createChallengeLinkElement(data, parent) {
 }
 
 function view_container_info(challenge_id) {
-    // console.log("[Container] Fetching info for challenge", challenge_id);
-    let alert = resetAlert();
+    var alert = document.getElementById("deployment-info");
+    if (_containerInfoCooldownUntil && Date.now() < _containerInfoCooldownUntil) {
+        var remaining = Math.ceil((_containerInfoCooldownUntil - Date.now()) / 1000);
+        if (alert) {
+            alert.innerHTML = "";
+            alert.classList.add("alert-warning");
+            alert.appendChild(document.createTextNode("Too many requests. Try again in " + remaining + "s."));
+        }
+        enableButtons();
+        return;
+    }
+    resetAlert();
+    alert = document.getElementById("deployment-info");
 
     fetch("/api/v1/containers/info/" + challenge_id, {
         method: "GET",
@@ -134,13 +190,16 @@ function view_container_info(challenge_id) {
         .then(response => {
             if (response.status === 429) {
                 return response.json().then(function (data) {
-                    throw { status: 429, message: data.message || "Too many requests. Try again in a minute." };
+                    throw {
+                        status: 429,
+                        message: data.message || "Too many requests. Try again in a minute.",
+                        retry_after_seconds: data.retry_after_seconds != null ? data.retry_after_seconds : 60
+                    };
                 });
             }
             return response.json();
         })
         .then(data => {
-            // console.log("[Container] Info response:", data);
             alert.innerHTML = ""; // Remove spinner
 
             if (data.status == "not_found") {
@@ -166,14 +225,19 @@ function view_container_info(challenge_id) {
         })
         .catch(error => {
             if (error && error.status === 429) {
-                alert.innerHTML = error.message || "Too many requests. Try again in a minute.";
-                alert.classList.add("alert-warning");
+                var sec = error.retry_after_seconds != null ? error.retry_after_seconds : 60;
+                _containerInfoCooldownUntil = Date.now() + sec * 1000;
+                showRateLimitCooldown(alert, sec, [], error.message, function () {
+                    _containerInfoCooldownUntil = 0;
+                });
+                hideChallengeUpdate();
+                toggleChallengeCreate();
             } else {
                 console.error("[Container] Fetch error:", error);
                 alert.innerHTML = "Error fetching container info.";
                 alert.classList.add("alert-danger");
+                toggleChallengeCreate();
             }
-            toggleChallengeCreate();
         })
         .finally(enableButtons);
 }
@@ -193,7 +257,11 @@ function container_request(challenge_id) {
         .then(response => {
             if (response.status === 429) {
                 return response.json().then(function (data) {
-                    throw { status: 429, message: data.message || "Too many requests. Try again in a minute." };
+                    throw {
+                        status: 429,
+                        message: data.message || "Too many requests. Try again in a minute.",
+                        retry_after_seconds: data.retry_after_seconds != null ? data.retry_after_seconds : 60
+                    };
                 });
             }
             return response.json();
@@ -218,14 +286,15 @@ function container_request(challenge_id) {
         })
         .catch(error => {
             if (error && error.status === 429) {
-                alert.innerHTML = error.message || "Too many requests. Try again in a minute.";
-                alert.classList.add("alert-warning");
+                var sec = error.retry_after_seconds != null ? error.retry_after_seconds : 60;
+                showRateLimitCooldown(alert, sec, ["create-chal"], error.message);
+                hideChallengeCreate();
             } else {
                 console.error("[Container] Request error:", error);
                 alert.innerHTML = "Error requesting container.";
                 alert.classList.add("alert-danger");
+                toggleChallengeCreate();
             }
-            toggleChallengeCreate();
         })
         .finally(enableButtons);
 }
@@ -245,7 +314,11 @@ function container_renew(challenge_id) {
         .then(response => {
             if (response.status === 429) {
                 return response.json().then(function (data) {
-                    throw { status: 429, message: data.message || "Too many requests. Try again in a minute." };
+                    throw {
+                        status: 429,
+                        message: data.message || "Too many requests. Try again in a minute.",
+                        retry_after_seconds: data.retry_after_seconds != null ? data.retry_after_seconds : 60
+                    };
                 });
             }
             return response.json();
@@ -262,8 +335,8 @@ function container_renew(challenge_id) {
         })
         .catch(error => {
             if (error && error.status === 429) {
-                alert.innerHTML = error.message || "Too many requests. Try again in a minute.";
-                alert.classList.add("alert-warning");
+                var sec = error.retry_after_seconds != null ? error.retry_after_seconds : 60;
+                showRateLimitCooldown(alert, sec, ["extend-chal"], error.message);
             } else {
                 alert.innerHTML = "Error renewing container.";
                 alert.classList.add("alert-danger");
@@ -288,7 +361,11 @@ function container_stop(challenge_id) {
         .then(response => {
             if (response.status === 429) {
                 return response.json().then(function (data) {
-                    throw { status: 429, message: data.message || "Too many requests. Try again in a minute." };
+                    throw {
+                        status: 429,
+                        message: data.message || "Too many requests. Try again in a minute.",
+                        retry_after_seconds: data.retry_after_seconds != null ? data.retry_after_seconds : 60
+                    };
                 });
             }
             return response.json();
@@ -306,12 +383,15 @@ function container_stop(challenge_id) {
         })
         .catch(error => {
             if (error && error.status === 429) {
-                alert.innerHTML = error.message || "Too many requests. Try again in a minute.";
-                alert.classList.add("alert-warning");
+                var sec = error.retry_after_seconds != null ? error.retry_after_seconds : 60;
+                showRateLimitCooldown(alert, sec, ["terminate-chal"], error.message);
+                hideChallengeUpdate();
+                toggleChallengeCreate();
             } else {
                 console.error("[Container] Stop error:", error);
                 alert.innerHTML = "Error stopping container.";
                 alert.classList.add("alert-danger");
+                toggleChallengeCreate();
             }
         })
         .finally(enableButtons);
