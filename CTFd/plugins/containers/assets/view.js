@@ -131,7 +131,14 @@ function view_container_info(challenge_id) {
             "CSRF-Token": init.csrfNonce
         }
     })
-        .then(response => response.json())
+        .then(response => {
+            if (response.status === 429) {
+                return response.json().then(function (data) {
+                    throw { status: 429, message: data.message || "Too many requests. Try again in a minute." };
+                });
+            }
+            return response.json();
+        })
         .then(data => {
             // console.log("[Container] Info response:", data);
             alert.innerHTML = ""; // Remove spinner
@@ -158,9 +165,14 @@ function view_container_info(challenge_id) {
             }
         })
         .catch(error => {
-            console.error("[Container] Fetch error:", error);
-            alert.innerHTML = "Error fetching container info.";
-            alert.classList.add("alert-danger");
+            if (error && error.status === 429) {
+                alert.innerHTML = error.message || "Too many requests. Try again in a minute.";
+                alert.classList.add("alert-warning");
+            } else {
+                console.error("[Container] Fetch error:", error);
+                alert.innerHTML = "Error fetching container info.";
+                alert.classList.add("alert-danger");
+            }
             toggleChallengeCreate();
         })
         .finally(enableButtons);
@@ -178,7 +190,14 @@ function container_request(challenge_id) {
         },
         body: JSON.stringify({ challenge_id: challenge_id })
     })
-        .then(response => response.json())
+        .then(response => {
+            if (response.status === 429) {
+                return response.json().then(function (data) {
+                    throw { status: 429, message: data.message || "Too many requests. Try again in a minute." };
+                });
+            }
+            return response.json();
+        })
         .then(data => {
             alert.innerHTML = ""; // Remove spinner
             if (data.error) {
@@ -198,9 +217,15 @@ function container_request(challenge_id) {
             }
         })
         .catch(error => {
-            console.error("[Container] Request error:", error);
-            alert.innerHTML = "Error requesting container.";
-            alert.classList.add("alert-danger");
+            if (error && error.status === 429) {
+                alert.innerHTML = error.message || "Too many requests. Try again in a minute.";
+                alert.classList.add("alert-warning");
+            } else {
+                console.error("[Container] Request error:", error);
+                alert.innerHTML = "Error requesting container.";
+                alert.classList.add("alert-danger");
+            }
+            toggleChallengeCreate();
         })
         .finally(enableButtons);
 }
@@ -217,7 +242,14 @@ function container_renew(challenge_id) {
         },
         body: JSON.stringify({ challenge_id: challenge_id })
     })
-        .then(response => response.json())
+        .then(response => {
+            if (response.status === 429) {
+                return response.json().then(function (data) {
+                    throw { status: 429, message: data.message || "Too many requests. Try again in a minute." };
+                });
+            }
+            return response.json();
+        })
         .then(data => {
             alert.innerHTML = ""; // Remove spinner
             if (data.error) {
@@ -229,9 +261,14 @@ function container_renew(challenge_id) {
             }
         })
         .catch(error => {
-            alert.innerHTML = "Error renewing container.";
-            alert.classList.add("alert-danger");
-            console.error("Fetch error:", error);
+            if (error && error.status === 429) {
+                alert.innerHTML = error.message || "Too many requests. Try again in a minute.";
+                alert.classList.add("alert-warning");
+            } else {
+                alert.innerHTML = "Error renewing container.";
+                alert.classList.add("alert-danger");
+                console.error("Fetch error:", error);
+            }
         })
         .finally(enableButtons);
 }
@@ -248,7 +285,14 @@ function container_stop(challenge_id) {
         },
         body: JSON.stringify({ challenge_id: challenge_id })
     })
-        .then(response => response.json())
+        .then(response => {
+            if (response.status === 429) {
+                return response.json().then(function (data) {
+                    throw { status: 429, message: data.message || "Too many requests. Try again in a minute." };
+                });
+            }
+            return response.json();
+        })
         .then(data => {
             alert.innerHTML = ""; // Remove spinner
             if (data.error) {
@@ -261,9 +305,14 @@ function container_stop(challenge_id) {
             }
         })
         .catch(error => {
-            console.error("[Container] Stop error:", error);
-            alert.innerHTML = "Error stopping container.";
-            alert.classList.add("alert-danger");
+            if (error && error.status === 429) {
+                alert.innerHTML = error.message || "Too many requests. Try again in a minute.";
+                alert.classList.add("alert-warning");
+            } else {
+                console.error("[Container] Stop error:", error);
+                alert.innerHTML = "Error stopping container.";
+                alert.classList.add("alert-danger");
+            }
         })
         .finally(enableButtons);
 }

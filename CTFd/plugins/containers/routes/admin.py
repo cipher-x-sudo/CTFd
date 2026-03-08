@@ -180,6 +180,15 @@ def settings():
         'subdomain_base_domain': ContainerConfig.get('subdomain_base_domain', ''),
         'subdomain_network': ContainerConfig.get('subdomain_network', 'ctfd-network'),
         'container_max_concurrent_count': ContainerConfig.get('container_max_concurrent_count', '3'),
+        # Rate limiting (per-account)
+        'container_ratelimit_request_limit': ContainerConfig.get('container_ratelimit_request_limit', '10'),
+        'container_ratelimit_request_interval': ContainerConfig.get('container_ratelimit_request_interval', '60'),
+        'container_ratelimit_info_limit': ContainerConfig.get('container_ratelimit_info_limit', '30'),
+        'container_ratelimit_info_interval': ContainerConfig.get('container_ratelimit_info_interval', '60'),
+        'container_ratelimit_renew_limit': ContainerConfig.get('container_ratelimit_renew_limit', '10'),
+        'container_ratelimit_renew_interval': ContainerConfig.get('container_ratelimit_renew_interval', '60'),
+        'container_ratelimit_stop_limit': ContainerConfig.get('container_ratelimit_stop_limit', '10'),
+        'container_ratelimit_stop_interval': ContainerConfig.get('container_ratelimit_stop_interval', '60'),
         'container_discord_webhook_url': ContainerConfig.get('container_discord_webhook_url', ''),
         # First Blood Discord
         'container_first_blood_enabled': ContainerConfig.get('container_first_blood_enabled', 'false'),

@@ -5,7 +5,6 @@ from flask import Blueprint, request, jsonify
 from CTFd.utils.decorators import (
     authed_only,
     during_ctf_time_only,
-    ratelimit,
     require_verified_emails
 )
 from CTFd.utils.user import get_current_user
@@ -13,6 +12,7 @@ from CTFd.utils import get_config
 from CTFd.models import db
 from ..models.instance import ContainerInstance
 from ..models.challenge import ContainerChallenge
+from ..ratelimit import container_ratelimit
 
 user_bp = Blueprint('containers_user', __name__, url_prefix='/api/v1/containers')
 
@@ -54,7 +54,7 @@ def get_account_id():
 @authed_only
 @during_ctf_time_only
 @require_verified_emails
-@ratelimit(method='POST', limit=10, interval=60)
+@container_ratelimit('request')
 def request_container():
     """
     Request a new container or get existing one
@@ -163,6 +163,7 @@ def request_container():
 @authed_only
 @during_ctf_time_only
 @require_verified_emails
+@container_ratelimit('info')
 def get_container_info(challenge_id):
     """
     Get info about running container for a challenge
@@ -214,7 +215,7 @@ def get_container_info(challenge_id):
 @authed_only
 @during_ctf_time_only
 @require_verified_emails
-@ratelimit(method='POST', limit=10, interval=60)
+@container_ratelimit('renew')
 def renew_container():
     """
     Renew (extend) container expiration
@@ -266,7 +267,7 @@ def renew_container():
 @authed_only
 @during_ctf_time_only
 @require_verified_emails
-@ratelimit(method='POST', limit=10, interval=60)
+@container_ratelimit('stop')
 def stop_container():
     """
     Stop running container

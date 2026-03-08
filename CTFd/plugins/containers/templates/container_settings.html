@@ -170,6 +170,65 @@
 			</div>
 
 			<div class="form-group">
+				<label><i class="fas fa-tachometer-alt"></i> API Rate Limiting (per User/Team)</label>
+				<small class="form-text text-muted d-block mb-2">
+					Max requests per interval to prevent abuse. Limits are per account, not per IP.
+				</small>
+				<div class="row">
+					<div class="col-md-6">
+						<label class="small text-muted">Request / Renew / Stop (POST)</label>
+						<div class="input-group input-group-sm">
+							<input class="form-control" type="number" name="container_ratelimit_request_limit"
+								id="container_ratelimit_request_limit" placeholder="10" min="1"
+								value="{{ settings.container_ratelimit_request_limit }}">
+							<div class="input-group-append"><span class="input-group-text">req /</span></div>
+							<input class="form-control" type="number" name="container_ratelimit_request_interval"
+								id="container_ratelimit_request_interval" placeholder="60" min="1"
+								value="{{ settings.container_ratelimit_request_interval }}">
+							<div class="input-group-append"><span class="input-group-text">sec</span></div>
+						</div>
+					</div>
+					<div class="col-md-6">
+						<label class="small text-muted">Get Info (GET)</label>
+						<div class="input-group input-group-sm">
+							<input class="form-control" type="number" name="container_ratelimit_info_limit"
+								id="container_ratelimit_info_limit" placeholder="30" min="1"
+								value="{{ settings.container_ratelimit_info_limit }}">
+							<div class="input-group-append"><span class="input-group-text">req /</span></div>
+							<input class="form-control" type="number" name="container_ratelimit_info_interval"
+								id="container_ratelimit_info_interval" placeholder="60" min="1"
+								value="{{ settings.container_ratelimit_info_interval }}">
+							<div class="input-group-append"><span class="input-group-text">sec</span></div>
+						</div>
+					</div>
+				</div>
+				<div class="row mt-1">
+					<div class="col-md-6">
+						<div class="input-group input-group-sm">
+							<input class="form-control" type="number" name="container_ratelimit_renew_limit"
+								id="container_ratelimit_renew_limit" placeholder="10" min="1"
+								value="{{ settings.container_ratelimit_renew_limit }}" aria-label="Renew limit">
+							<input class="form-control" type="number" name="container_ratelimit_renew_interval"
+								id="container_ratelimit_renew_interval" placeholder="60" min="1"
+								value="{{ settings.container_ratelimit_renew_interval }}" aria-label="Renew interval">
+						</div>
+						<small class="form-text text-muted">Renew: limit / interval (sec)</small>
+					</div>
+					<div class="col-md-6">
+						<div class="input-group input-group-sm">
+							<input class="form-control" type="number" name="container_ratelimit_stop_limit"
+								id="container_ratelimit_stop_limit" placeholder="10" min="1"
+								value="{{ settings.container_ratelimit_stop_limit }}" aria-label="Stop limit">
+							<input class="form-control" type="number" name="container_ratelimit_stop_interval"
+								id="container_ratelimit_stop_interval" placeholder="60" min="1"
+								value="{{ settings.container_ratelimit_stop_interval }}" aria-label="Stop interval">
+						</div>
+						<small class="form-text text-muted">Stop: limit / interval (sec)</small>
+					</div>
+				</div>
+			</div>
+
+			<div class="form-group">
 				<label for="container_discord_webhook_url">Discord Webhook URL</label>
 				<input class="form-control" type="text" name="container_discord_webhook_url"
 					id="container_discord_webhook_url" placeholder="https://discord.com/api/webhooks/..."
