@@ -19,6 +19,15 @@ if [ ! -f .ctfd_secret_key ] && [ -z "$SECRET_KEY" ]; then
     fi
 fi
 
+# Railway / PaaS: DATABASE_URL must be in the *runtime* environment. If it is empty here,
+# CTFd falls back to SQLite (Alembic logs: Context impl SQLiteImpl).
+if [ -z "${DATABASE_URL:-}" ]; then
+  echo "[CTFd] WARNING: DATABASE_URL is empty in this process. CTFd will use SQLite, not MySQL/Postgres."
+else
+  echo "[CTFd] DATABASE_URL is set (dialect: ${DATABASE_URL%%://*}, length=${#DATABASE_URL} chars)"
+fi
+python -c "from CTFd.config import Config; u=Config.DATABASE_URL or ''; s=u.startswith('sqlite') if u else True; print('[CTFd] Resolved after config load:', 'SQLite' if s else 'non-SQLite (OK for production DB)')" || true
+
 # Skip db ping if SKIP_DB_PING is set to a value other than false or empty string
 if [[ "$SKIP_DB_PING" == "false" ]]; then
   # Ensures that the database is available
