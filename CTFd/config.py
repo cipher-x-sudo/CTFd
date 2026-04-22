@@ -99,7 +99,11 @@ class ServerConfig(object):
     SECRET_KEY: str = empty_str_cast(config_ini["server"]["SECRET_KEY"]) \
         or gen_secret_key()
 
-    DATABASE_URL: str = empty_str_cast(config_ini["server"]["DATABASE_URL"])
+    # Prefer OS env (e.g. Railway) over config.ini. EnvInterpolation + empty_str_cast can
+    # leave DATABASE_URL unset and fall back to SQLite even when DATABASE_URL is in the process env.
+    DATABASE_URL: str = (os.environ.get("DATABASE_URL", "") or "").strip() or empty_str_cast(
+        config_ini["server"]["DATABASE_URL"]
+    )
     if not DATABASE_URL:
         if empty_str_cast(config_ini["server"]["DATABASE_HOST"]) is not None:
             # construct URL from individual variables
@@ -115,7 +119,9 @@ class ServerConfig(object):
             # default to local SQLite DB
             DATABASE_URL = f"sqlite:///{os.path.dirname(os.path.abspath(__file__))}/ctfd.db"
 
-    REDIS_URL: str = empty_str_cast(config_ini["server"]["REDIS_URL"])
+    REDIS_URL: str = (os.environ.get("REDIS_URL", "") or "").strip() or empty_str_cast(
+        config_ini["server"]["REDIS_URL"]
+    )
 
     REDIS_HOST: str = empty_str_cast(config_ini["server"]["REDIS_HOST"])
     REDIS_PROTOCOL: str = empty_str_cast(config_ini["server"]["REDIS_PROTOCOL"]) or "redis"
