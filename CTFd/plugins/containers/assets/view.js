@@ -84,6 +84,38 @@ function hideChallengeUpdate() {
     if (terminateBtn) terminateBtn.classList.add('d-none');
 }
 
+// Rate limit cooldown: show countdown on the specific button that was rate-limited
+var _containerInfoCooldownUntil = 0;
+
+function showButtonCooldown(buttonId, originalText, seconds, onComplete) {
+    var btn = document.getElementById(buttonId);
+    if (!btn) return;
+    btn.disabled = true;
+    seconds = Math.max(1, parseInt(seconds, 10) || 60);
+    var originalHTML = btn.innerHTML;
+
+    function updateButtonText(sec) {
+        var small = btn.querySelector("small");
+        if (small) {
+            btn.innerHTML = "<small style=\"color: white\">" + originalText + " (" + sec + "s)</small>";
+        } else {
+            btn.textContent = originalText + " (" + sec + "s)";
+        }
+    }
+    updateButtonText(seconds);
+    var remaining = seconds;
+    var intervalId = setInterval(function () {
+        remaining--;
+        updateButtonText(remaining);
+        if (remaining <= 0) {
+            clearInterval(intervalId);
+            btn.disabled = false;
+            btn.innerHTML = originalHTML;
+            if (typeof onComplete === "function") onComplete();
+        }
+    }, 1000);
+}
+
 function calculateExpiry(date) {
     return Math.ceil((new Date(date * 1000) - new Date()) / 1000 / 60);
 }
@@ -121,8 +153,19 @@ function createChallengeLinkElement(data, parent) {
 }
 
 function view_container_info(challenge_id) {
-    // console.log("[Container] Fetching info for challenge", challenge_id);
-    let alert = resetAlert();
+    var alert = document.getElementById("deployment-info");
+    if (_containerInfoCooldownUntil && Date.now() < _containerInfoCooldownUntil) {
+        var remaining = Math.ceil((_containerInfoCooldownUntil - Date.now()) / 1000);
+        if (alert) {
+            alert.innerHTML = "";
+            alert.classList.add("alert-warning");
+            alert.appendChild(document.createTextNode("Too many requests. Try again in " + remaining + "s."));
+        }
+        enableButtons();
+        return;
+    }
+    resetAlert();
+    alert = document.getElementById("deployment-info");
 
     fetch("/api/v1/containers/info/" + challenge_id, {
         method: "GET",
@@ -131,9 +174,19 @@ function view_container_info(challenge_id) {
             "CSRF-Token": init.csrfNonce
         }
     })
-        .then(response => response.json())
+        .then(response => {
+            if (response.status === 429) {
+                return response.json().then(function (data) {
+                    throw {
+                        status: 429,
+                        message: data.message || "Too many requests. Try again in a minute.",
+                        retry_after_seconds: data.retry_after_seconds != null ? data.retry_after_seconds : 60
+                    };
+                });
+            }
+            return response.json();
+        })
         .then(data => {
-            // console.log("[Container] Info response:", data);
             alert.innerHTML = ""; // Remove spinner
 
             if (data.status == "not_found") {
@@ -158,10 +211,35 @@ function view_container_info(challenge_id) {
             }
         })
         .catch(error => {
-            console.error("[Container] Fetch error:", error);
-            alert.innerHTML = "Error fetching container info.";
-            alert.classList.add("alert-danger");
-            toggleChallengeCreate();
+            if (error && error.status === 429) {
+                var sec = error.retry_after_seconds != null ? error.retry_after_seconds : 60;
+                _containerInfoCooldownUntil = Date.now() + sec * 1000;
+                // Show small notice (alert was already cleared by resetAlert); do NOT hide buttons
+                alert.classList.remove("alert-danger");
+                alert.classList.add("alert-warning");
+                var countEl = document.createElement("span");
+                countEl.setAttribute("id", "container-info-ratelimit-countdown");
+                alert.innerHTML = "";
+                alert.appendChild(document.createTextNode("Too many requests. Try again in "));
+                alert.appendChild(countEl);
+                alert.appendChild(document.createTextNode("s."));
+                countEl.textContent = sec;
+                var remaining = sec;
+                var intervalId = setInterval(function () {
+                    remaining--;
+                    var el = document.getElementById("container-info-ratelimit-countdown");
+                    if (el) el.textContent = remaining;
+                    if (remaining <= 0) {
+                        clearInterval(intervalId);
+                        _containerInfoCooldownUntil = 0;
+                    }
+                }, 1000);
+            } else {
+                console.error("[Container] Fetch error:", error);
+                alert.innerHTML = "Error fetching container info.";
+                alert.classList.add("alert-danger");
+                toggleChallengeCreate();
+            }
         })
         .finally(enableButtons);
 }
@@ -178,7 +256,18 @@ function container_request(challenge_id) {
         },
         body: JSON.stringify({ challenge_id: challenge_id })
     })
-        .then(response => response.json())
+        .then(response => {
+            if (response.status === 429) {
+                return response.json().then(function (data) {
+                    throw {
+                        status: 429,
+                        message: data.message || "Too many requests. Try again in a minute.",
+                        retry_after_seconds: data.retry_after_seconds != null ? data.retry_after_seconds : 60
+                    };
+                });
+            }
+            return response.json();
+        })
         .then(data => {
             alert.innerHTML = ""; // Remove spinner
             if (data.error) {
@@ -198,9 +287,18 @@ function container_request(challenge_id) {
             }
         })
         .catch(error => {
-            console.error("[Container] Request error:", error);
-            alert.innerHTML = "Error requesting container.";
-            alert.classList.add("alert-danger");
+            if (error && error.status === 429) {
+                var sec = error.retry_after_seconds != null ? error.retry_after_seconds : 60;
+                alert.classList.remove("alert-danger");
+                alert.classList.add("alert-warning");
+                alert.textContent = (error.message || "Too many requests. Try again in a minute.") + " ";
+                showButtonCooldown("create-chal", "Fetch Instance", sec);
+            } else {
+                console.error("[Container] Request error:", error);
+                alert.innerHTML = "Error requesting container.";
+                alert.classList.add("alert-danger");
+                toggleChallengeCreate();
+            }
         })
         .finally(enableButtons);
 }
@@ -217,7 +315,18 @@ function container_renew(challenge_id) {
         },
         body: JSON.stringify({ challenge_id: challenge_id })
     })
-        .then(response => response.json())
+        .then(response => {
+            if (response.status === 429) {
+                return response.json().then(function (data) {
+                    throw {
+                        status: 429,
+                        message: data.message || "Too many requests. Try again in a minute.",
+                        retry_after_seconds: data.retry_after_seconds != null ? data.retry_after_seconds : 60
+                    };
+                });
+            }
+            return response.json();
+        })
         .then(data => {
             alert.innerHTML = ""; // Remove spinner
             if (data.error) {
@@ -229,9 +338,17 @@ function container_renew(challenge_id) {
             }
         })
         .catch(error => {
-            alert.innerHTML = "Error renewing container.";
-            alert.classList.add("alert-danger");
-            console.error("Fetch error:", error);
+            if (error && error.status === 429) {
+                var sec = error.retry_after_seconds != null ? error.retry_after_seconds : 60;
+                showButtonCooldown("extend-chal", "Extend Time", sec);
+                // Restore deployment-info to previous state (spinner was shown; show connection hint or leave as-is)
+                alert.innerHTML = "";
+                alert.classList.remove("alert-danger", "alert-warning");
+            } else {
+                alert.innerHTML = "Error renewing container.";
+                alert.classList.add("alert-danger");
+                console.error("Fetch error:", error);
+            }
         })
         .finally(enableButtons);
 }
@@ -248,7 +365,18 @@ function container_stop(challenge_id) {
         },
         body: JSON.stringify({ challenge_id: challenge_id })
     })
-        .then(response => response.json())
+        .then(response => {
+            if (response.status === 429) {
+                return response.json().then(function (data) {
+                    throw {
+                        status: 429,
+                        message: data.message || "Too many requests. Try again in a minute.",
+                        retry_after_seconds: data.retry_after_seconds != null ? data.retry_after_seconds : 60
+                    };
+                });
+            }
+            return response.json();
+        })
         .then(data => {
             alert.innerHTML = ""; // Remove spinner
             if (data.error) {
@@ -261,9 +389,17 @@ function container_stop(challenge_id) {
             }
         })
         .catch(error => {
-            console.error("[Container] Stop error:", error);
-            alert.innerHTML = "Error stopping container.";
-            alert.classList.add("alert-danger");
+            if (error && error.status === 429) {
+                var sec = error.retry_after_seconds != null ? error.retry_after_seconds : 60;
+                showButtonCooldown("terminate-chal", "Terminate", sec);
+                alert.innerHTML = "";
+                alert.classList.remove("alert-danger", "alert-warning");
+            } else {
+                console.error("[Container] Stop error:", error);
+                alert.innerHTML = "Error stopping container.";
+                alert.classList.add("alert-danger");
+                toggleChallengeCreate();
+            }
         })
         .finally(enableButtons);
 }

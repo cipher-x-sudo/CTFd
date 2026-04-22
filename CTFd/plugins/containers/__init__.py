@@ -546,6 +546,15 @@ def _initialize_default_config():
         'max_memory': '512m',
         'max_cpu': '0.5',
         'container_autoban_enabled': 'true',
+        # Rate limiting (per-account, configurable)
+        'container_ratelimit_request_limit': '10',
+        'container_ratelimit_request_interval': '60',
+        'container_ratelimit_info_limit': '30',
+        'container_ratelimit_info_interval': '60',
+        'container_ratelimit_renew_limit': '10',
+        'container_ratelimit_renew_interval': '60',
+        'container_ratelimit_stop_limit': '10',
+        'container_ratelimit_stop_interval': '60',
         # WaSender WhatsApp
         'wasender_api_key':   '',
         'wasender_group_id':  '',

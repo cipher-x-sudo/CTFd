@@ -1,0 +1,98 @@
+{% extends "container_base.html" %}
+
+{% block menu %}
+{% include "config/container_menu.html" %}
+{% endblock %}
+
+{% block panel %}
+
+	{% if rate_limit_logs and rate_limit_logs|length > 0 %}
+	<div class="alert alert-info">
+		<strong>Rate limit events:</strong> {{ rate_limit_logs|length }} log(s). Use "Clear rate limit" to reset the counter for that account so they can make requests again; they will be limited again if they exceed the configured limits.
+	</div>
+
+	<table class="table table-striped border">
+		<thead>
+			<tr>
+				<th class="text-center"><b>Time</b></th>
+				<th class="text-center"><b>Account</b></th>
+				<th class="text-center"><b>Action</b></th>
+				<th class="text-center"><b>IP</b></th>
+				<th class="text-center"><b>Actions</b></th>
+			</tr>
+		</thead>
+		<tbody>
+			{% for log in rate_limit_logs %}
+			<tr>
+				<td class="text-center">
+					{{ log.timestamp.strftime('%Y-%m-%d %H:%M:%S') if log.timestamp else 'N/A' }}
+				</td>
+				<td class="text-center">
+					{% if log.account_team %}
+						<a href="{{ url_for('admin.teams_detail', team_id=log.account_team.id) }}">
+							<i class="fas fa-users"></i> {{ log.account_team.name }}
+						</a>
+					{% elif log.account_user %}
+						<a href="{{ url_for('admin.users_detail', user_id=log.account_user.id) }}">
+							<i class="fas fa-user"></i> {{ log.account_user.name }}
+						</a>
+					{% else %}
+						<code>{{ log.account_key }}</code>
+					{% endif %}
+				</td>
+				<td class="text-center">
+					<code>{{ log.action }}</code>
+				</td>
+				<td class="text-center">
+					{{ log.ip_address or '—' }}
+				</td>
+				<td class="text-center">
+					<button type="button" class="btn btn-sm btn-outline-primary" onclick="clearRateLimit('{{ log.account_key }}', this)" title="Clear rate limit for this account">
+						<i class="fas fa-sync-alt"></i> Clear rate limit
+					</button>
+				</td>
+			</tr>
+			{% endfor %}
+		</tbody>
+	</table>
+	{% else %}
+	<div class="alert alert-success">
+		<i class="fas fa-check-circle"></i> No rate limit events logged yet.
+	</div>
+	{% endif %}
+{% include "config/container_status.html" %}
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+	var clearRateLimitUrl = '{{ url_for("containers_admin.api_rate_limit_clear") }}';
+	function clearRateLimit(accountKey, btn) {
+		btn.disabled = true;
+		btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> ...';
+		fetch(clearRateLimitUrl, {
+			method: 'POST',
+			headers: {
+				'Content-Type': 'application/json',
+				'CSRF-Token': '{{ Session.nonce }}'
+			},
+			body: JSON.stringify({ account_key: accountKey })
+		})
+			.then(r => r.json())
+			.then(data => {
+				if (data.success) {
+					alert('Rate limit cleared for ' + accountKey + '. They can request again; they will be limited again if they exceed the limit.');
+				} else {
+					alert('Error: ' + (data.error || 'Unknown error'));
+				}
+				btn.disabled = false;
+				btn.innerHTML = '<i class="fas fa-sync-alt"></i> Clear rate limit';
+			})
+			.catch(e => {
+				alert('Network error: ' + e);
+				btn.disabled = false;
+				btn.innerHTML = '<i class="fas fa-sync-alt"></i> Clear rate limit';
+			});
+	}
+</script>
+{% endblock %}

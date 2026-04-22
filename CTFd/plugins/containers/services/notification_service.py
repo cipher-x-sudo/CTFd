@@ -92,6 +92,11 @@ class NotificationService:
     def _get_webhook_url(self):
         return ContainerConfig.get('container_discord_webhook_url', '')
 
+    def _get_error_webhook_url(self):
+        """Webhook for ⚠️ Container Plugin Error alerts. Uses dedicated URL if set, else main webhook."""
+        url = (ContainerConfig.get('container_error_webhook_url', '') or '').strip()
+        return url or self._get_webhook_url()
+
     # -------------------------------------------------------------------------
     # WaSender helpers
     # -------------------------------------------------------------------------
@@ -206,7 +211,7 @@ class NotificationService:
     # Discord helpers
     # -------------------------------------------------------------------------
 
-    def send_alert(self, title, message, color=0xff0000, fields=None):
+    def send_alert(self, title, message, color=0xff0000, fields=None, webhook_url=None):
         """
         Send an alert to Discord and WaSender.
 
@@ -215,8 +220,9 @@ class NotificationService:
             message: Embed description
             color: Hex color integer (default red)
             fields: List of dicts {'name': str, 'value': str, 'inline': bool}
+            webhook_url: Optional Discord webhook URL; if None, uses main webhook.
         """
-        webhook_url = self._get_webhook_url()
+        webhook_url = webhook_url or self._get_webhook_url()
         discord_ok = False
         if webhook_url:
             try:
@@ -233,21 +239,21 @@ class NotificationService:
             except Exception as e:
                 logger.error(f"Failed to send Discord notification: {e}")
 
-        # Fire WaSender (fire-and-forget, don't let it block/fail the caller)
+        # Fire WaSender: send ban message first (text only), then audio
         try:
             wa_text = self._build_wa_text(title, message, fields)
-            self._send_whatsapp(wa_text)
+            _, _, _, wa_audio_url = self._get_wa_config()
+            self._send_whatsapp(wa_text, image_url="", audio_url=wa_audio_url)
         except Exception as e:
             logger.error(f"WaSender alert failed: {e}")
 
         return discord_ok
 
-    def notify_cheat(self, user, challenge, flag, owner):
+    def notify_cheat(self, user, challenge, owner):
         """Send cheat detection alert"""
         fields = [
             {"name": "User", "value": user.name if user else "Unknown", "inline": True},
             {"name": "Challenge", "value": challenge.name if challenge else "Unknown", "inline": True},
-            {"name": "Flag Submitted", "value": f"`{flag}`", "inline": False},
             {"name": "Original Owner", "value": owner.name if owner else "Unknown", "inline": True},
             {"name": "Action Taken", "value": "User & Owner Banned", "inline": False}
         ]
@@ -260,17 +266,17 @@ class NotificationService:
         )
 
     def notify_error(self, operation, error_msg):
-        """Send system error alert"""
+        """Send system error alert to the error webhook (or main webhook if no error webhook set)."""
         fields = [
             {"name": "Operation", "value": operation, "inline": True},
             {"name": "Error", "value": f"```{error_msg}```", "inline": False}
         ]
-        
         return self.send_alert(
             title="⚠️ Container Plugin Error",
             message="An error occurred in the container system.",
-            color=0xffa500, # Orange
-            fields=fields
+            color=0xffa500,  # Orange
+            fields=fields,
+            webhook_url=self._get_error_webhook_url(),
         )
 
     def _post_announcer_and_leaderboard(self, first_blood, chal_name, user_name, team_name, chal_id, category, points):
@@ -471,7 +477,6 @@ class NotificationService:
         fields = [
             {"name": "User", "value": "demo_hacker", "inline": True},
             {"name": "Challenge", "value": "Demo Challenge", "inline": True},
-            {"name": "Flag Submitted", "value": "`CTF{demo_flag_hash}`", "inline": False},
             {"name": "Original Owner", "value": "innocent_victim", "inline": True},
             {"name": "Action Taken", "value": "User & Owner Banned", "inline": False}
         ]
@@ -484,8 +489,8 @@ class NotificationService:
         )
 
     def send_demo_error(self, webhook_url=None):
-        """Send a demo error alert (Discord only)"""
-        url_to_use = webhook_url or self._get_webhook_url()
+        """Send a demo error alert (Discord only). Uses error webhook if no URL given."""
+        url_to_use = webhook_url or self._get_error_webhook_url()
         fields = [
             {"name": "Operation", "value": "Container Provisioning", "inline": True},
             {"name": "Error", "value": "```DockerException: Connection refused```", "inline": False}
@@ -521,11 +526,10 @@ class NotificationService:
         )
 
     def send_wa_demo_cheat(self, api_key=None, group_id=None):
-        """Send a demo cheat alert to WhatsApp."""
+        """Send a demo cheat alert to WhatsApp. Message first, then audio (same as real ban)."""
         fields = [
             {"name": "User", "value": "demo_hacker"},
             {"name": "Challenge", "value": "Demo Challenge"},
-            {"name": "Flag Submitted", "value": "CTF{demo_flag_hash}"},
             {"name": "Original Owner", "value": "innocent_victim"},
             {"name": "Action Taken", "value": "User & Owner Banned"},
         ]
@@ -534,8 +538,9 @@ class NotificationService:
             "This is a DEMO alert. No actual banning occurred.",
             fields,
         )
+        _, _, _, wa_audio_url = self._get_wa_config()
         return self._send_whatsapp(text, api_key=api_key, group_id=group_id,
-                                   image_url="", audio_url="")
+                                   image_url="", audio_url=wa_audio_url)
 
     def send_wa_demo_error(self, api_key=None, group_id=None):
         """Send a demo error alert to WhatsApp."""

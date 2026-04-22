@@ -137,9 +137,24 @@ def upgrade():
         sa.PrimaryKeyConstraint('key')
     )
 
+    # Create container_rate_limit_logs table
+    op.create_table(
+        'container_rate_limit_logs',
+        sa.Column('id', sa.Integer(), nullable=False),
+        sa.Column('account_key', sa.String(length=64), nullable=False),
+        sa.Column('action', sa.String(length=32), nullable=False),
+        sa.Column('ip_address', sa.String(length=45), nullable=True),
+        sa.Column('timestamp', sa.DateTime(), nullable=False),
+        sa.PrimaryKeyConstraint('id')
+    )
+    op.create_index(op.f('ix_container_rate_limit_logs_account_key'), 'container_rate_limit_logs', ['account_key'])
+    op.create_index(op.f('ix_container_rate_limit_logs_action'), 'container_rate_limit_logs', ['action'])
+    op.create_index(op.f('ix_container_rate_limit_logs_timestamp'), 'container_rate_limit_logs', ['timestamp'])
+
 
 def downgrade():
     """Drop container plugin tables"""
+    op.drop_table('container_rate_limit_logs')
     op.drop_table('container_config')
     op.drop_table('container_audit_logs')
     op.drop_table('container_flag_attempts')
